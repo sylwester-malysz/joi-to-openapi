@@ -1,0 +1,29 @@
+{
+  "name": "joi-to-openapi",
+  "version": "1.0.0",
+  "description": "Joi converter to openapi 3.0 standard",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sylwester-malysz/joi-to-openapi.git"
+  },
+  "keywords": [
+    "joi",
+    "swagger",
+    "openapi",
+    "schema"
+  ],
+  "author": "Sylwester Małysz",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sylwester-malysz/joi-to-openapi/issues"
+  },
+  "homepage": "https://github.com/sylwester-malysz/joi-to-openapi#readme",
+  "dependencies": {
+    "joi": "^13.6.0",
+    "lodash.find": "^4.6.0"
+  }
+}
