@@ -16,7 +16,7 @@ const getRequiredFields = (child) => {
   const required = [];
   for (const children of child) {
     if (children.schema._flags.presence === 'required') {
-      required.push([children.key]);
+      required.push(children.key);
     }
   }
   return required.length ? { required } : null;
