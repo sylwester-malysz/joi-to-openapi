@@ -16,6 +16,11 @@ const universalDecorator = (joiSchema) => {
     universalParams.nullable = true;
   }
 
+  if (joiSchema._valids && joiSchema._valids._set.size) {
+    const validValues = Array.from(joiSchema._valids._set);
+    universalParams.enum = validValues.filter(value => value !== null && value !== '');
+  }
+
   if (joiSchema._description) {
     universalParams.description = joiSchema._description;
   }
