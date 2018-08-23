@@ -18,7 +18,10 @@ const universalDecorator = (joiSchema) => {
 
   if (joiSchema._valids && joiSchema._valids._set.size) {
     const validValues = Array.from(joiSchema._valids._set);
-    universalParams.enum = validValues.filter(value => value !== null && value !== '');
+    const notEmptyValues = validValues.filter(value => value !== null && value !== '');
+    if (notEmptyValues.length) {
+      universalParams.enum = notEmptyValues;
+    }
   }
 
   if (joiSchema._description) {
