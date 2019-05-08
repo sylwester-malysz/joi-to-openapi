@@ -10,8 +10,6 @@ const getType = (flags) => {
   };
 };
 
-const parser = joiSchema => ({
-  ...getType(joiSchema._flags),
-});
+const parser = joiSchema => getType(joiSchema._flags);
 
 module.exports = parser;

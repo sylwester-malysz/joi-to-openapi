@@ -1,15 +1,19 @@
 /* eslint-disable no-underscore-dangle */
-const alternativesParser = require('./parsersForTypes/alternatives');
-const numberParser = require('./parsersForTypes/number');
-const stringParser = require('./parsersForTypes/string');
-const booleanParser = require('./parsersForTypes/boolean');
-const objectParser = require('./parsersForTypes/object');
-const arrayParser = require('./parsersForTypes/array');
-const binaryParser = require('./parsersForTypes/binary');
-const dateParser = require('./parsersForTypes/date');
+const alternativesParser = require("./parsersForTypes/alternatives");
+const numberParser = require("./parsersForTypes/number");
+const stringParser = require("./parsersForTypes/string");
+const booleanParser = require("./parsersForTypes/boolean");
+const objectParser = require("./parsersForTypes/object");
+const arrayParser = require("./parsersForTypes/array");
+const binaryParser = require("./parsersForTypes/binary");
+const dateParser = require("./parsersForTypes/date");
+const routeParser = require("./parsersForTypes/routing");
+const refParser = require("./parsersForTypes/ref");
+const extensionParser = require("./parsersForTypes/extension");
+const jsonfile = require("jsonfile");
+const resolvePath = require("path").resolve;
 
-
-const universalDecorator = (joiSchema) => {
+const universalDecorator = joiSchema => {
   const universalParams = {};
 
   if (joiSchema._valids && joiSchema._valids.has(null)) {
@@ -18,7 +22,9 @@ const universalDecorator = (joiSchema) => {
 
   if (joiSchema._valids && joiSchema._valids._set.size) {
     const validValues = Array.from(joiSchema._valids._set);
-    const notEmptyValues = validValues.filter(value => value !== null && value !== '');
+    const notEmptyValues = validValues.filter(
+      value => value !== null && value !== ""
+    );
     if (notEmptyValues.length) {
       universalParams.enum = notEmptyValues;
     }
@@ -46,48 +52,67 @@ const universalDecorator = (joiSchema) => {
   return universalParams;
 };
 
+const convert = joiSchema => {
+  if (!joiSchema) throw new Error("No schema was passed.");
 
-const convert = (joiSchema) => {
-  if (!joiSchema) throw new Error('No schema was passed.');
-
-  if (!joiSchema.isJoi) throw new TypeError('Passed schema does not appear to be a joi schema.');
+  if (!joiSchema.isJoi)
+    throw new TypeError("Passed schema does not appear to be a joi schema.");
 
   const type = joiSchema._type;
   let swaggerSchema;
   switch (type) {
-    case 'number':
+    case "number":
       swaggerSchema = numberParser(joiSchema);
       break;
-    case 'string':
+    case "string":
       swaggerSchema = stringParser(joiSchema);
       break;
-    case 'boolean':
+    case "boolean":
       swaggerSchema = booleanParser(joiSchema);
       break;
-    case 'binary':
+    case "binary":
       swaggerSchema = binaryParser(joiSchema);
       break;
-    case 'alternatives':
+    case "alternatives":
       swaggerSchema = alternativesParser(joiSchema, convert);
       break;
-    case 'object':
+    case "object":
       swaggerSchema = objectParser(joiSchema, convert);
       break;
-    case 'array':
+    case "array":
       swaggerSchema = arrayParser(joiSchema, convert);
       break;
-    case 'date':
+    case "date":
       swaggerSchema = dateParser(joiSchema);
       break;
-    case 'any':
-      swaggerSchema = { type: ['array', 'boolean', 'number', 'object', 'string', 'null'] };
+    case "any":
+      swaggerSchema = {
+        type: ["array", "boolean", "number", "object", "string", "null"]
+      };
+      break;
+    case "routing":
+      swaggerSchema = swaggerSchema = routeParser(joiSchema, convert);
+      break;
+    case "ref":
+      swaggerSchema = swaggerSchema = refParser(joiSchema);
       break;
     default:
-      throw new TypeError(`${type} is not a recognized Joi type.`);
+      swaggerSchema = swaggerSchema = extensionParser(joiSchema, convert);
   }
 
   return Object.assign(swaggerSchema, universalDecorator(joiSchema));
 };
 
+const convertToFile = (joiSchema, destinationFolder) => {
+  const openAPISchema = convert(joiSchema);
+  for (let version in openAPISchema) {
+    jsonfile
+      .writeFile(
+        resolvePath(`${destinationFolder}/${version}.json`),
+        openAPISchema[version]
+      )
+      .then(() => console.log(`${destinationFolder}.${version}.json done!`));
+  }
+};
 
-module.exports = convert;
+module.exports = { convert, convertToFile };

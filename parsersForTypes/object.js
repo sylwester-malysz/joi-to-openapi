@@ -23,11 +23,10 @@ const getRequiredFields = (child) => {
 };
 
 
-const parser = (joiSchema, convert) => ({
-  type: 'object',
-  ...getChild(joiSchema._inner.children, convert),
-  ...getRequiredFields(joiSchema._inner.children, convert),
-});
+const parser = (joiSchema, convert) => {
+  const child = getChild(joiSchema._inner.children, convert);
+  const requiredFields = getRequiredFields(joiSchema._inner.children, convert);
+  return Object.assign({ type : 'object' }, child, requiredFields);
+};
 
 module.exports = parser;
-

@@ -3,12 +3,9 @@
   "version": "1.0.3",
   "description": "Joi converter to openapi 3.0 standard",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 0"
-  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sylwester-malysz/joi-to-openapi.git"
+    "url": "git+https://github.com/sdrubolo/joi-to-openapi.git"
   },
   "keywords": [
     "joi",
@@ -19,11 +16,33 @@
   "author": "Sylwester Małysz",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/sylwester-malysz/joi-to-openapi/issues"
+    "url": "https://github.com/sdrubolo/joi-to-openapi/issues"
   },
-  "homepage": "https://github.com/sylwester-malysz/joi-to-openapi#readme",
+  "homepage": "https://github.com/sdrubolo/joi-to-openapi#readme",
   "dependencies": {
-    "joi": "^13.6.0",
-    "lodash.find": "^4.6.0"
+    "@hapi/joi": "15.0.0",
+    "lodash.find": "^4.6.0",
+    "jsonfile": "^5.0.0",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "chai-subset": "^1.6.0",
+    "sinon": "^7.3.2",
+    "sinon-chai": "^3.3.0",
+    "eslint": "^4.19.1",
+    "mocha": "^5.0.0",
+    "mocha-steps": "^1.1.0",
+    "eslint-config-airbnb-base": "13.0.x",
+    "eslint-config-prettier": "^3.0.1",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-mocha": "^5.2.0",
+    "eslint-plugin-prettier": "^2.6.2",
+    "prettier": "^1.14.2",
+    "prettier-eslint": "^8.8.2"
+  },
+  "scripts": {
+    "test": "mocha ./test/*.unit.js"
   }
 }

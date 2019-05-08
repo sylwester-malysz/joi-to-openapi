@@ -51,11 +51,15 @@ const getValidValues = (joiSchema) => {
   return null;
 };
 
-const parser = joiSchema => ({
-  ...getType(joiSchema._tests),
-  ...getMinValue(joiSchema._tests),
-  ...getMaxValue(joiSchema._tests),
-  ...getValidValues(joiSchema),
-});
+const parser = joiSchema => {
+
+  const type = getType(joiSchema._tests);
+  const minValue = getMinValue(joiSchema._tests);
+  const maxValue = getMaxValue(joiSchema._tests);
+  const validValues = getValidValues(joiSchema);
+
+  return Object.assign({}, type, minValue, maxValue, validValues);
+
+};
 
 module.exports = parser;

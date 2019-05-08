@@ -1,4 +1,4 @@
-const joi = require('joi');
+const joi = require('@hapi/joi');
 const find = require('lodash.find');
 
 const getChild = (items, convert) => {
@@ -23,13 +23,12 @@ const getMaxItems = (tests) => {
 };
 
 
-const parser = (joiSchema, convert) => ({
-  type: 'array',
-  ...getChild(joiSchema._inner.items, convert),
-  ...getMaxItems(joiSchema._tests),
-  ...getMinItems(joiSchema._tests),
-  ...getLength(joiSchema._tests),
-});
+const parser = (joiSchema, convert) => {
+  const child = getChild(joiSchema._inner.items, convert);
+  const maxItems = getMaxItems(joiSchema._tests);
+  const minItems = getMinItems(joiSchema._tests);
+  const len = getLength(joiSchema._tests);
+  return Object.assign({ type : 'array' }, child, maxItems, minItems, len)
+};
 
 module.exports = parser;
-

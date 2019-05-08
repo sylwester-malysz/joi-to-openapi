@@ -21,12 +21,14 @@ const getMaxLength = (tests) => {
   return max ? { maxLength: max.arg } : null;
 };
 
-const parser = joiSchema => ({
-  type: 'string',
-  ...getFormat(joiSchema._flags),
-  ...getMaxLength(joiSchema._tests),
-  ...getMinLength(joiSchema._tests),
-  ...getLength(joiSchema._tests),
-});
+
+const parser = (joiSchema, convert) => {
+  const format = getFormat(joiSchema._flags);
+  const maxLength = getMaxLength(joiSchema._tests);
+  const minLength = getMinLength(joiSchema._tests);
+  const len = getLength(joiSchema._tests);
+  return Object.assign({ type : 'string' }, format, maxLength, minLength, len);
+};
+
 
 module.exports = parser;
