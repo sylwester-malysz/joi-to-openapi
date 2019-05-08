@@ -111,7 +111,6 @@ const convertToFile = (joiSchema, destinationFolder) => {
         resolvePath(`${destinationFolder}/${version}.json`),
         openAPISchema[version]
       )
-      .then(() => console.log(`${destinationFolder}.${version}.json done!`));
   }
 };
 
