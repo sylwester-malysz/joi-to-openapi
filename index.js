@@ -12,6 +12,11 @@ const refParser = require("./parsersForTypes/ref");
 const extensionParser = require("./parsersForTypes/extension");
 const jsonfile = require("jsonfile");
 const resolvePath = require("path").resolve;
+const OpenAPISchemaValidator = require("openapi-schema-validator").default;
+
+const validator = new OpenAPISchemaValidator({
+  version: 3
+});
 
 const universalDecorator = joiSchema => {
   const universalParams = {};
@@ -87,7 +92,14 @@ const convert = joiSchema => {
       break;
     case "any":
       swaggerSchema = {
-        type: ["array", "boolean", "number", "object", "string", "null"]
+        oneOf: [
+          { type: "array" },
+          { type: "boolean" },
+          { type: "number" },
+          { type: "object" },
+          { type: "string" },
+          { type: "null" }
+        ]
       };
       break;
     case "routing":
@@ -106,11 +118,18 @@ const convert = joiSchema => {
 const convertToFile = (joiSchema, destinationFolder) => {
   const openAPISchema = convert(joiSchema);
   for (let version in openAPISchema) {
-    jsonfile
-      .writeFile(
-        resolvePath(`${destinationFolder}/${version}.json`),
-        openAPISchema[version]
-      )
+    const schemaValidation = validator.validate(openAPISchema[version]);
+    if (schemaValidation.errors.length > 0) {
+      const errorPath = `${destinationFolder}/error_${version}.json`;
+      console.log(
+        `An error has occured, please check ${errorPath} for details`
+      );
+      jsonfile.writeFile(resolvePath(errorPath), schemaValidation);
+    }
+    jsonfile.writeFile(
+      resolvePath(`${destinationFolder}/${version}.json`),
+      openAPISchema[version]
+    );
   }
 };
 
