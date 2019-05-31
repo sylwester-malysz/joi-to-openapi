@@ -157,7 +157,7 @@ const getComponentWithContentType = (components, convert) => {
 };
 
 const getComponents = (components, convert) => {
-  const schemas = getComponentItem(components.schema || {}, convert);
+  const schemas = getComponentItem(components.schemas || {}, convert);
   const parameters = convertParamsFromComponents(
     components.parameters || {},
     convert
