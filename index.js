@@ -116,19 +116,27 @@ const convert = joiSchema => {
 };
 
 const convertToFile = (joiSchema, destinationFolder) => {
-  const openAPISchema = convert(joiSchema);
-  for (let version in openAPISchema) {
-    const schemaValidation = validator.validate(openAPISchema[version]);
-    if (schemaValidation.errors.length > 0) {
-      const errorPath = `${destinationFolder}/error_${version}.json`;
-      console.log(
-        `An error has occured, please check ${errorPath} for details`
+  const convertedJoi = convert(joiSchema);
+  const fileName = joiSchema._type;
+  if (joiSchema._type === "route") {
+    for (let version in convertedJoi) {
+      const schemaValidation = validator.validate(convertedJoi[version]);
+      if (schemaValidation.errors.length > 0) {
+        const errorPath = `${destinationFolder}/error_${fileName}_${version}.json`;
+        console.error(
+          `An error has occured, please check ${errorPath} for details`
+        );
+        jsonfile.writeFile(resolvePath(errorPath), schemaValidation);
+      }
+      jsonfile.writeFile(
+        resolvePath(`${destinationFolder}/${fileName}.${version}.json`),
+        convertedJoi[version]
       );
-      jsonfile.writeFile(resolvePath(errorPath), schemaValidation);
     }
+  } else {
     jsonfile.writeFile(
-      resolvePath(`${destinationFolder}/${version}.json`),
-      openAPISchema[version]
+      resolvePath(`${destinationFolder}/${fileName}.json`),
+      convertedJoi
     );
   }
 };
