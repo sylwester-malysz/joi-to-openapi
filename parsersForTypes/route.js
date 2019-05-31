@@ -9,51 +9,6 @@ const isRequired = obj => {
   return obj._flags.presence === "required" ? true : undefined;
 };
 
-/*
-
-const convertParamsFromPath = (path, params, convert) => {
-  let parameters = (params || []).map(item => {
-    let openApiParameter;
-    if (item.isJoi && item._type == "ref") {
-      openApiParameter = convert(item);
-    } else {
-      openApiParameter = {
-        name: item.key,
-        in: "query",
-        schema: convert(item),
-        required: isRequired(item)
-      };
-    }
-
-    return openApiParameter;
-  });
-  return parameters;
-};
-
-const convertParamsFromComponents = (params, convert) => {
-  let parameters = Object.keys(params || {}).reduce((acc, key) => {
-    let openApiParameter;
-    const item = params[key];
-    if (item.isJoi && item._type == "ref") {
-      openApiParameter = convert(item);
-    } else {
-      openApiParameter = {
-        name: item.name,
-        in: "query",
-        schema: convert(item.schema),
-        required: isRequired(item.schema)
-      };
-    }
-
-    acc[key] = openApiParameter;
-
-    return acc;
-  }, {});
-  return parameters;
-};
-
-*/
-
 const makeOpenApiParam = (item, convert, components = {}) => {
   let openApiParameter;
   if (item.isJoi && item._type == "ref") {
@@ -244,7 +199,11 @@ const parser = (joiSchema, convert) => {
       convert
     );
     const paths = getPaths(versionedPaths[i][1], convert, components);
-    routing[version] = Object.assign(emptyInfo, { paths, components });
+    routing[version] = Object.assign(
+      emptyInfo,
+      { info: { ...emptyInfo.info, ...{ version } } },
+      { paths, components }
+    );
   }
 
   return routing;

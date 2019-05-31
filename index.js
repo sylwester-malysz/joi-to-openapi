@@ -7,7 +7,7 @@ const objectParser = require("./parsersForTypes/object");
 const arrayParser = require("./parsersForTypes/array");
 const binaryParser = require("./parsersForTypes/binary");
 const dateParser = require("./parsersForTypes/date");
-const routeParser = require("./parsersForTypes/routing");
+const routeParser = require("./parsersForTypes/route");
 const refParser = require("./parsersForTypes/ref");
 const extensionParser = require("./parsersForTypes/extension");
 const jsonfile = require("jsonfile");
@@ -102,7 +102,7 @@ const convert = joiSchema => {
         ]
       };
       break;
-    case "routing":
+    case "route":
       swaggerSchema = swaggerSchema = routeParser(joiSchema, convert);
       break;
     case "ref":
