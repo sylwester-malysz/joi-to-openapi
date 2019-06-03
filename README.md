@@ -1,4 +1,4 @@
-# joi-to-openapi
+# joi-openapi
 
 This is a fork of [joi-to-openapi](https://github.com/sylwester-malysz/joi-to-openapi) with some new options. In short, in this package I've added joi extensions as supported type.
 
@@ -8,7 +8,7 @@ Now the library support to outputs for converted joi: standard output and file.
 
 ```javascript
 const Joi = require("@hapi/joi");
-const { convert } = require("joi-to-openapi");
+const { convert } = require("joi-openapi");
 
 let joi = Joi.extend(joi => ({
   base: joi
@@ -37,7 +37,7 @@ to write the output on a file
 
 ```javascript
 const Joi = require("@hapi/joi");
-const { convertToFile } = require("joi-to-openapi");
+const { convertToFile } = require("joi-openapi");
 
 let joi = Joi.extend(joi => ({
   base: joi
