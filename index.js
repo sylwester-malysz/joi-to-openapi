@@ -10,6 +10,7 @@ const dateParser = require("./parsersForTypes/date");
 const routeParser = require("./parsersForTypes/route");
 const refParser = require("./parsersForTypes/ref");
 const extensionParser = require("./parsersForTypes/extension");
+const optionsParser = require("./parsersForTypes/options");
 const jsonfile = require("jsonfile");
 const resolvePath = require("path").resolve;
 const OpenAPISchemaValidator = require("openapi-schema-validator").default;
@@ -102,14 +103,17 @@ const convert = joiSchema => {
         ]
       };
       break;
+    case "options":
+      swaggerSchema = optionsParser(joiSchema, convert);
+        break;
     case "route":
-      swaggerSchema = swaggerSchema = routeParser(joiSchema, convert);
+      swaggerSchema = routeParser(joiSchema, convert);
       break;
     case "ref":
-      swaggerSchema = swaggerSchema = refParser(joiSchema);
+      swaggerSchema  = refParser(joiSchema);
       break;
     default:
-      swaggerSchema = swaggerSchema = extensionParser(joiSchema, convert);
+      swaggerSchema = extensionParser(joiSchema, convert);
   }
 
   return Object.assign(swaggerSchema, universalDecorator(joiSchema));
