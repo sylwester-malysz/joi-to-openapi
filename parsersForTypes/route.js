@@ -199,11 +199,7 @@ const parser = (joiSchema, convert) => {
       convert
     );
     const paths = getPaths(versionedPaths[i][1], convert, components);
-    routing[version] = Object.assign(
-      emptyInfo,
-      { info: { ...emptyInfo.info, ...{ version } } },
-      { paths, components }
-    );
+    routing[version] = {...emptyInfo, ...{ info: { ...emptyInfo.info, ...{ version } } }, paths, components }
   }
 
   return routing;
