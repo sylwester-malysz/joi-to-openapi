@@ -11,13 +11,6 @@ const routeParser = require("./parsersForTypes/route");
 const refParser = require("./parsersForTypes/ref");
 const extensionParser = require("./parsersForTypes/extension");
 const optionsParser = require("./parsersForTypes/options");
-const jsonfile = require("jsonfile");
-const resolvePath = require("path").resolve;
-const OpenAPISchemaValidator = require("openapi-schema-validator").default;
-
-const validator = new OpenAPISchemaValidator({
-  version: 3
-});
 
 const universalDecorator = joiSchema => {
   const universalParams = {};
@@ -65,6 +58,7 @@ const convert = joiSchema => {
     throw new TypeError("Passed schema does not appear to be a joi schema.");
 
   const type = joiSchema._type;
+  const decorator = universalDecorator(joiSchema);
   let swaggerSchema;
   switch (type) {
     case "number":
@@ -105,44 +99,25 @@ const convert = joiSchema => {
       break;
     case "options":
       swaggerSchema = optionsParser(joiSchema, convert);
-        break;
+      break;
     case "route":
       swaggerSchema = routeParser(joiSchema, convert);
       break;
-    case "ref":
-      swaggerSchema  = refParser(joiSchema);
+    case "ref": {
+      swaggerSchema = refParser(joiSchema);
+      if (decorator.nullable) {
+        delete decorator.nullable;
+        swaggerSchema = {
+          oneOf: [swaggerSchema, { nullable: true }]
+        };
+      }
       break;
+    }
     default:
       swaggerSchema = extensionParser(joiSchema, convert);
   }
 
-  return Object.assign(swaggerSchema, universalDecorator(joiSchema));
+  return Object.assign(swaggerSchema, decorator);
 };
 
-const convertToFile = (joiSchema, destinationFolder) => {
-  const convertedJoi = convert(joiSchema);
-  const fileName = joiSchema._type;
-  if (joiSchema._type === "route") {
-    for (let version in convertedJoi) {
-      const schemaValidation = validator.validate(convertedJoi[version]);
-      if (schemaValidation.errors.length > 0) {
-        const errorPath = `${destinationFolder}/error_${fileName}_${version}.json`;
-        console.error(
-          `An error has occured, please check ${errorPath} for details`
-        );
-        jsonfile.writeFile(resolvePath(errorPath), schemaValidation);
-      }
-      jsonfile.writeFile(
-        resolvePath(`${destinationFolder}/${fileName}.${version}.json`),
-        convertedJoi[version]
-      );
-    }
-  } else {
-    jsonfile.writeFile(
-      resolvePath(`${destinationFolder}/${fileName}.json`),
-      convertedJoi
-    );
-  }
-};
-
-module.exports = { convert, convertToFile };
+module.exports = { convert };

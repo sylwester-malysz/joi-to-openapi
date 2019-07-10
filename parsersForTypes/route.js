@@ -192,14 +192,19 @@ const parser = (joiSchema, convert) => {
       }
     }
   };
+  const components = getComponents(
+    joiSchema._settings.components || {},
+    convert
+  );
   for (let i = 0, len = versionedPaths.length; i < len; i++) {
     const version = versionedPaths[i][0];
-    const components = getComponents(
-      (joiSchema._settings.components || { [version]: {} })[version] || {},
-      convert
-    );
     const paths = getPaths(versionedPaths[i][1], convert, components);
-    routing[version] = {...emptyInfo, ...{ info: { ...emptyInfo.info, ...{ version } } }, paths, components }
+    routing[version] = {
+      ...emptyInfo,
+      ...{ info: { ...emptyInfo.info, ...{ version } } },
+      paths,
+      components
+    };
   }
 
   return routing;
