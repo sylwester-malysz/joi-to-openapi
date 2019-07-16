@@ -31,12 +31,18 @@ const getMaxLength = (tests) => {
   return max ? { maxLength: max.arg } : null;
 };
 
+const getPattern = (tests) => {
+  const p = find(tests, {name: 'regex'});
+  return p ? { 'pattern': p.arg.pattern.source } : null
+};
+
 const parser = joiSchema => {
   const format = getFormat(joiSchema._tests);
   const maxLength = getMaxLength(joiSchema._tests);
   const minLength = getMinLength(joiSchema._tests);
   const len = getLength(joiSchema._tests);
-  return Object.assign({ type : 'string' }, format, maxLength, minLength, len)
+  const pattern = getPattern(joiSchema._tests);
+  return Object.assign({ type : 'string' }, format, maxLength, minLength, pattern, len)
 };
 
 module.exports = parser;
