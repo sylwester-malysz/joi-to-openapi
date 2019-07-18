@@ -50,6 +50,17 @@ const convertParamsFromComponents = (params, convert) => {
   return parameters;
 };
 
+const wrapInBrackets = str =>
+  `${str
+    .split("/")
+    .map(s => {
+      if (s.startsWith(":")) {
+        s = `{${s.replace(/^:/g, "")}}`;
+      }
+      return s;
+    })
+    .join("/")}`;
+
 const getPaths = (paths, convert, components) => {
   const mapObject = objToMap =>
     objToMap.isJoi
@@ -64,15 +75,21 @@ const getPaths = (paths, convert, components) => {
 
   const openAPIPaths = {};
   for (const path in paths) {
-    openAPIPaths[path] = initIfUndefined(openAPIPaths, path, {});
+    const openApiPathFormat = wrapInBrackets(path);
+    openAPIPaths[openApiPathFormat] = initIfUndefined(
+      openAPIPaths,
+      openApiPathFormat,
+      {}
+    );
     const handlers = paths[path];
     for (let i = 0, len = handlers.length; i < len; i++) {
-      const handler = handlers[i];
+      const handlerDef = handlers[i];
+      const handlerMethod = handlerDef.method.toLowerCase();
       const openAPIHandler = {};
-      const responses = handler.handler.responses;
+      const responses = handlerDef.handler.responses;
 
       openAPIHandler.parameters = convertParamsFromPath(
-        handler.handler.params,
+        handlerDef.handler.params,
         convert,
         components
       );
@@ -90,14 +107,19 @@ const getPaths = (paths, convert, components) => {
         },
         {}
       );
-      let requestBodyToOpenApi = mapObject(handler.handler.requestBody || {});
-      if (!requestBodyToOpenApi.$ref) {
-        requestBodyToOpenApi = {
-          content: requestBodyToOpenApi
-        };
+      if (handlerMethod !== "get" && handlerMethod != "delete") {
+        let requestBodyToOpenApi = mapObject(
+          handlerDef.handler.requestBody || {}
+        );
+        if (!requestBodyToOpenApi.$ref) {
+          requestBodyToOpenApi = {
+            content: requestBodyToOpenApi
+          };
+        }
+        openAPIHandler.requestBody = requestBodyToOpenApi;
       }
-      openAPIHandler.requestBody = requestBodyToOpenApi;
-      openAPIPaths[path][handler.method.toLowerCase()] = openAPIHandler;
+
+      openAPIPaths[openApiPathFormat][handlerMethod] = openAPIHandler;
     }
   }
   return openAPIPaths;
