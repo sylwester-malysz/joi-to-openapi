@@ -51,7 +51,7 @@ const universalDecorator = joiSchema => {
   return universalParams;
 };
 
-const convert = joiSchema => {
+const convertAux = (joiSchema, state) => {
   if (!joiSchema) throw new Error("No schema was passed.");
 
   if (!joiSchema.isJoi)
@@ -74,13 +74,13 @@ const convert = joiSchema => {
       swaggerSchema = binaryParser(joiSchema);
       break;
     case "alternatives":
-      swaggerSchema = alternativesParser(joiSchema, convert);
+      swaggerSchema = alternativesParser(joiSchema, state, convertAux);
       break;
     case "object":
-      swaggerSchema = objectParser(joiSchema, convert);
+      swaggerSchema = objectParser(joiSchema, state, convertAux);
       break;
     case "array":
-      swaggerSchema = arrayParser(joiSchema, convert);
+      swaggerSchema = arrayParser(joiSchema, state, convertAux);
       break;
     case "date":
       swaggerSchema = dateParser(joiSchema);
@@ -98,10 +98,10 @@ const convert = joiSchema => {
       };
       break;
     case "options":
-      swaggerSchema = optionsParser(joiSchema, convert);
+      swaggerSchema = optionsParser(joiSchema, state, convertAux);
       break;
     case "route":
-      swaggerSchema = routeParser(joiSchema, convert);
+      swaggerSchema = routeParser(joiSchema, convertAux);
       break;
     case "ref": {
       swaggerSchema = refParser(joiSchema);
@@ -114,10 +114,12 @@ const convert = joiSchema => {
       break;
     }
     default:
-      swaggerSchema = extensionParser(joiSchema, convert);
+      swaggerSchema = extensionParser(joiSchema, state, convertAux);
   }
 
   return Object.assign(swaggerSchema, decorator);
 };
+
+const convert = joiSchema => convertAux(joiSchema, {});
 
 module.exports = { convert };

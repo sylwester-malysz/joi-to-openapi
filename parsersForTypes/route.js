@@ -1,4 +1,5 @@
 const joi = require("@hapi/joi");
+const { retrieveReference } = require("./utils");
 
 const initIfUndefined = (obj, key, defaultValue) => {
   obj[key] = obj[key] || defaultValue;
@@ -9,43 +10,32 @@ const isRequired = obj => {
   return obj._flags.presence === "required" ? true : undefined;
 };
 
-const makeOpenApiParam = (item, convert, components = {}) => {
+const makeOpenApiParam = (item, state = {}, convert) => {
   let openApiParameter;
-  if (item.isJoi && item._type == "ref") {
-    const reference = item._flags._internal_ref || "";
-    const [componentRef, itemRef] = reference.split(":");
-    if (
-      !componentRef ||
-      !itemRef ||
-      !components[componentRef] ||
-      !components[componentRef][itemRef]
-    )
-      throw Error(
-        `wrong reference ${reference}. Please make sure there exists a schema in the component`
-      );
-    openApiParameter = convert(item);
+  if (retrieveReference(item, state.components)) {
+    openApiParameter = convert(item, state);
   } else {
     const name = item.name ? item.name : item.key;
     openApiParameter = {
       name,
       in: item.in,
-      schema: convert(item.schema),
+      schema: convert(item.schema, state),
       required: isRequired(item.schema)
     };
   }
   return openApiParameter;
 };
 
-const convertParamsFromPath = (params, convert, components) => {
+const convertParamsFromPath = (params, state, convert) => {
   let parameters = (params || []).map(item => {
-    return makeOpenApiParam(item, convert, components);
+    return makeOpenApiParam(item, state, convert);
   });
   return parameters;
 };
 
-const convertParamsFromComponents = (params, convert) => {
+const convertParamsFromComponents = (params, state, convert) => {
   let parameters = Object.keys(params || {}).reduce((acc, key) => {
-    return { ...acc, [key]: makeOpenApiParam(params[key], convert) };
+    return { ...acc, [key]: makeOpenApiParam(params[key], state, convert) };
   }, {});
   return parameters;
 };
@@ -61,15 +51,15 @@ const wrapInBrackets = str =>
     })
     .join("/")}`;
 
-const getPaths = (paths, convert, components) => {
+const getPaths = (paths, state, convert) => {
   const mapObject = objToMap =>
     objToMap.isJoi
-      ? convert(objToMap)
+      ? convert(objToMap, state)
       : Object.keys(objToMap || {}).reduce((obj, item) => {
           let convertItem = objToMap[item] || {};
           if (!convertItem.isJoi) convertItem = joi.compile(convertItem);
           return Object.assign(obj, {
-            [item]: { schema: convert(convertItem) }
+            [item]: { schema: convert(convertItem, state) }
           });
         }, {});
 
@@ -90,8 +80,8 @@ const getPaths = (paths, convert, components) => {
 
       openAPIHandler.parameters = convertParamsFromPath(
         handlerDef.handler.params,
-        convert,
-        components
+        state,
+        convert
       );
       openAPIHandler.responses = Object.keys(responses || {}).reduce(
         (obj, item) => {
@@ -152,17 +142,17 @@ const groupPathsByVersions = paths => {
   return versionedPaths;
 };
 
-const getComponentItem = (components, convert) => {
+const getComponentItem = (components, state, convert) => {
   const componentToOpenAPI = {};
   for (const i in components) {
     let convertItem = components[i] || {};
     if (!convertItem.isJoi) convertItem = joi.compile(convertItem);
-    componentToOpenAPI[i] = convert(convertItem);
+    componentToOpenAPI[i] = convert(convertItem, { ...state });
   }
   return componentToOpenAPI;
 };
 
-const getComponentWithContentType = (components, convert) => {
+const getComponentWithContentType = (components, state, convert) => {
   const componentToOpenAPI = {};
   for (const i in components) {
     let convertSet = components[i] || {};
@@ -171,25 +161,28 @@ const getComponentWithContentType = (components, convert) => {
       let convertItem = convertSet[j] || {};
       if (!convertItem.isJoi) convertItem = joi.compile(convertItem);
       contentTypeSet = { description: "", content: {} };
-      contentTypeSet["content"][j] = { schema: convert(convertItem) };
+      contentTypeSet["content"][j] = { schema: convert(convertItem, state) };
     }
     componentToOpenAPI[i] = contentTypeSet;
   }
   return componentToOpenAPI;
 };
 
-const getComponents = (components, convert) => {
-  const schemas = getComponentItem(components.schemas || {}, convert);
+const getComponents = (components, state, convert) => {
+  const schemas = getComponentItem(components.schemas || {}, state, convert);
   const parameters = convertParamsFromComponents(
     components.parameters || {},
+    state,
     convert
   );
   const responses = getComponentWithContentType(
     components.responses || {},
+    state,
     convert
   );
   const requestBodies = getComponentWithContentType(
     components.requestBodies || {},
+    state,
     convert
   );
   return { schemas, parameters, responses, requestBodies };
@@ -199,6 +192,7 @@ const parser = (joiSchema, convert) => {
   const versionedPaths = Object.entries(
     groupPathsByVersions(joiSchema._settings.routing.paths)
   );
+  const state = { components: { ...(joiSchema._settings.components || {}) } };
   const routing = {};
   const emptyInfo = {
     openapi: "3.0.0",
@@ -216,11 +210,12 @@ const parser = (joiSchema, convert) => {
   };
   const components = getComponents(
     joiSchema._settings.components || {},
+    state,
     convert
   );
   for (let i = 0, len = versionedPaths.length; i < len; i++) {
     const version = versionedPaths[i][0];
-    const paths = getPaths(versionedPaths[i][1], convert, components);
+    const paths = getPaths(versionedPaths[i][1], state, convert, components);
     routing[version] = {
       ...emptyInfo,
       ...{ info: { ...emptyInfo.info, ...{ version } } },

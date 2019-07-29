@@ -1,10 +1,11 @@
-const getOneOfSchemas = (matches, convert) => ({
-  oneOf: [...matches.map(allowedType => convert(allowedType))]
+const getOneOfSchemas = (matches, state, convert) => ({
+  oneOf: [...matches.map(allowedType => convert(allowedType, state))]
 });
 
-const parser = (joiSchema, convert) => {
+const parser = (joiSchema, state, convert) => {
   const schema = getOneOfSchemas(
     Object.values(joiSchema._flags.alternatives),
+    state,
     convert
   );
   return schema;
