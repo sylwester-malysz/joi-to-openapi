@@ -6,7 +6,7 @@ const convertIfPresent = (cond, convert, state) => {
   let c;
   if (cond) {
     c = convert(cond, state);
-    c.required = cond._flags.presence === "required";
+    if (c) c.required = cond._flags.presence === "required";
   }
   return c;
 };

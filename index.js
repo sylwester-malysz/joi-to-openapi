@@ -11,6 +11,7 @@ const routeParser = require("./parsersForTypes/route");
 const refParser = require("./parsersForTypes/ref");
 const extensionParser = require("./parsersForTypes/extension");
 const optionsParser = require("./parsersForTypes/options");
+const anyParser = require("./parsersForTypes/any");
 
 const universalDecorator = joiSchema => {
   const universalParams = {};
@@ -86,16 +87,7 @@ const convertAux = (joiSchema, state) => {
       swaggerSchema = dateParser(joiSchema);
       break;
     case "any":
-      swaggerSchema = {
-        oneOf: [
-          { type: "array" },
-          { type: "boolean" },
-          { type: "number" },
-          { type: "object" },
-          { type: "string" },
-          { type: "null" }
-        ]
-      };
+      swaggerSchema = anyParser(joiSchema);
       break;
     case "options":
       swaggerSchema = optionsParser(joiSchema, state, convertAux);
@@ -117,7 +109,7 @@ const convertAux = (joiSchema, state) => {
       swaggerSchema = extensionParser(joiSchema, state, convertAux);
   }
 
-  return Object.assign(swaggerSchema, decorator);
+  return swaggerSchema ? Object.assign(swaggerSchema, decorator) : undefined;
 };
 
 const convert = joiSchema => convertAux(joiSchema, {});
