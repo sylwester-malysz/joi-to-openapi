@@ -101,7 +101,7 @@ const convertAux = (joiSchema, state) => {
       swaggerSchema = optionsParser(joiSchema, state, convertAux);
       break;
     case "route":
-      swaggerSchema = routeParser(joiSchema, convertAux);
+      swaggerSchema = routeParser(joiSchema, state, convertAux);
       break;
     case "ref": {
       swaggerSchema = refParser(joiSchema);

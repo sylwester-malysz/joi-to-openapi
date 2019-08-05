@@ -188,11 +188,14 @@ const getComponents = (components, state, convert) => {
   return { schemas, parameters, responses, requestBodies };
 };
 
-const parser = (joiSchema, convert) => {
+const parser = (joiSchema, s, convert) => {
   const versionedPaths = Object.entries(
     groupPathsByVersions(joiSchema._settings.routing.paths)
   );
-  const state = { components: { ...(joiSchema._settings.components || {}) } };
+  const state = {
+    ...s,
+    components: { ...(joiSchema._settings.components || {}) }
+  };
   const routing = {};
   const emptyInfo = {
     openapi: "3.0.0",
@@ -213,15 +216,26 @@ const parser = (joiSchema, convert) => {
     state,
     convert
   );
+  let custom = {};
+  if (joiSchema._flags.customize) {
+    custom = joiSchema._flags.customize(schema => convert(schema, state));
+  }
+
   for (let i = 0, len = versionedPaths.length; i < len; i++) {
     const version = versionedPaths[i][0];
     const paths = getPaths(versionedPaths[i][1], state, convert, components);
-    routing[version] = {
+    let routTmp = {
       ...emptyInfo,
       ...{ info: { ...emptyInfo.info, ...{ version } } },
       paths,
       components
     };
+
+    if (custom) {
+      routTmp = { ...routTmp, ...custom };
+    }
+
+    routing[version] = routTmp;
   }
 
   return routing;

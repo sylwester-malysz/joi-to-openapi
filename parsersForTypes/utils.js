@@ -12,11 +12,12 @@ const getRef = (componentRef, itemRef, components) => {
   if (
     !componentRef ||
     !itemRef ||
+    !components ||
     !components[componentRef] ||
     !components[componentRef][itemRef]
   )
     throw Error(
-      `wrong reference ${reference}. Please make sure there exists a schema in the component`
+      `wrong reference ${componentRef}:${itemRef}. Please make sure there exists a schema in the component`
     );
   return components[componentRef][itemRef];
 };

@@ -6,11 +6,18 @@ const getOptionsFromRef = (matches, state, convert) => {
   const schema = {
     optOf: [
       ...matches.map(s => {
-        const then = convert(s.then, state);
-        then.required = s.then._flags.presence === "required";
+        let then;
+        if (s.then) {
+          then = convert(s.then, state);
+          then.required = s.then._flags.presence === "required";
+        }
+
+        const is = s.is ? convert(s.is, state) : undefined;
+        const otherwise = s.otherwise ? convert(s.otherwise, state) : undefined;
 
         return {
-          is: convert(s.is, state),
+          is,
+          otherwise,
           then,
           ref: s.ref.key
         };
