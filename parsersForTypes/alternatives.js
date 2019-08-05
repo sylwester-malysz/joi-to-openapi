@@ -2,23 +2,24 @@ const getOneOfSchemas = (matches, state, convert) => ({
   oneOf: [...matches.map(allowedType => convert(allowedType.schema, state))]
 });
 
+const convertIfPresent = (cond, convert, state) => {
+  let c;
+  if (cond) {
+    c = convert(cond, state);
+    c.required = cond._flags.presence === "required";
+  }
+  return c;
+};
+
 const getOptionsFromRef = (matches, state, convert) => {
   const schema = {
     optOf: [
       ...matches.map(s => {
-        let then;
-        if (s.then) {
-          then = convert(s.then, state);
-          then.required = s.then._flags.presence === "required";
-        }
-
         const is = s.is ? convert(s.is, state) : undefined;
-        const otherwise = s.otherwise ? convert(s.otherwise, state) : undefined;
-
         return {
           is,
-          otherwise,
-          then,
+          otherwise: convertIfPresent(s.otherwise, convert, state),
+          then: convertIfPresent(s.then, convert, state),
           ref: s.ref.key
         };
       })
