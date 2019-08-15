@@ -1,5 +1,5 @@
 const retrieveReference = (joiReference, components) => {
-  if (joiReference.isJoi && joiReference._type == "ref") {
+  if (joiReference.isJoi && joiReference._type == "reference") {
     const reference = joiReference._flags._internal_ref || "";
     const [componentRef, itemRef] = reference.split(":");
     return getRef(componentRef, itemRef, components);

@@ -8,7 +8,7 @@ const arrayParser = require("./parsersForTypes/array");
 const binaryParser = require("./parsersForTypes/binary");
 const dateParser = require("./parsersForTypes/date");
 const routeParser = require("./parsersForTypes/route");
-const refParser = require("./parsersForTypes/ref");
+const refParser = require("./parsersForTypes/reference");
 const extensionParser = require("./parsersForTypes/extension");
 const optionsParser = require("./parsersForTypes/options");
 const anyParser = require("./parsersForTypes/any");
@@ -95,7 +95,7 @@ const convertAux = (joiSchema, state) => {
     case "route":
       swaggerSchema = routeParser(joiSchema, state, convertAux);
       break;
-    case "ref": {
+    case "reference": {
       swaggerSchema = refParser(joiSchema);
       if (decorator.nullable) {
         delete decorator.nullable;
