@@ -88,6 +88,7 @@ const accumulateConditions = (acc, cond, is, convert, state) => {
 const replaceKeyWithObject = (keys, store, obj) => {
   const [currentKey, ...remainingKeys] = keys;
   if (!currentKey) return obj;
+  if (!store[currentKey]) return store;
 
   if (store.type === "object") {
     return {
@@ -108,7 +109,7 @@ const replaceKeyWithObject = (keys, store, obj) => {
   };
 };
 
-const processOption2 = (opts, objChildren, state, convert) => {
+const processOption = (opts, objChildren, state, convert) => {
   const generateAlternatives = (acc, [referenceName, data]) => {
     const referenceObj = data.reference;
 
@@ -121,9 +122,19 @@ const processOption2 = (opts, objChildren, state, convert) => {
       const thennable = (conditions.options.thennable || []).reduce(f, {
         [referenceName]: is
       });
-      const otherwise = (conditions.options.otherwise || []).reduce(f, {
-        [referenceName]: { ...is, enum: referenceObj.enum.diff(is.enum) }
-      });
+
+      const alternativeEnum = referenceObj.enum.diff(is.enum);
+      const alternativeIs =
+        alternativeEnum.length > 0
+          ? {
+              [referenceName]: { ...is, enum: referenceObj.enum.diff(is.enum) }
+            }
+          : {};
+
+      const otherwise = (conditions.options.otherwise || []).reduce(
+        f,
+        alternativeIs
+      );
 
       return [
         ...acc,
@@ -147,10 +158,13 @@ const processOption2 = (opts, objChildren, state, convert) => {
 
       const objPath = option[name];
       delete option[name];
-
       return {
         properties: {
-          ...replaceKeyWithObject(path, objChildren.properties, objPath),
+          ...JSON.parse(
+            JSON.stringify(
+              replaceKeyWithObject(path, objChildren.properties, objPath)
+            )
+          ),
           ...option
         },
         required
@@ -218,7 +232,7 @@ const parser = (joiSchema, state, convert) => {
 
     return {
       type: "object",
-      oneOf: processOption2(
+      oneOf: processOption(
         groupByOptions(opts, obj, state, convert),
         obj,
         state,
