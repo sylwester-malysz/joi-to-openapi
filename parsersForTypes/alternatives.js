@@ -1,3 +1,5 @@
+const { makeOptions } = require("./alternatives_utils");
+
 const getOneOfSchemas = (matches, state, convert) => ({
   oneOf: [...matches.map(allowedType => convert(allowedType.schema, state))]
 });
@@ -16,11 +18,12 @@ const getOptionsFromRef = (matches, state, convert) => {
     optOf: [
       ...matches.map(s => {
         const is = s.is ? convert(s.is, state) : undefined;
+        const ref = s.ref ? s.ref.key : undefined;
         return {
           is,
           otherwise: convertIfPresent(s.otherwise, convert, state),
           then: convertIfPresent(s.then, convert, state),
-          ref: s.ref.key
+          ref
         };
       })
     ]
@@ -30,6 +33,23 @@ const getOptionsFromRef = (matches, state, convert) => {
 const parser = (joiSchema, state, convert) => {
   if (joiSchema._refs && joiSchema._refs.length > 0) {
     return getOptionsFromRef(joiSchema._inner.matches, state, convert);
+  }
+  if (
+    joiSchema._inner.matches.length === 1 &&
+    !joiSchema._inner.matches[0].schema &&
+    joiSchema._inner.matches[0].peek
+  ) {
+    const obj = joiSchema._inner.matches[0];
+
+    return makeOptions(
+      {
+        peek: convert(obj.peek, state),
+        then: convert(obj.then, state),
+        otherwise: convert(obj.otherwise, state)
+      },
+      state,
+      convert
+    );
   }
   return getOneOfSchemas(joiSchema._inner.matches, state, convert);
 };

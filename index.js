@@ -53,7 +53,9 @@ const universalDecorator = joiSchema => {
 };
 
 const convertAux = (joiSchema, state) => {
-  if (!joiSchema) throw new Error("No schema was passed.");
+  if (!joiSchema) {
+    throw new Error("No schema was passed");
+  }
 
   if (!joiSchema.isJoi)
     throw new TypeError("Passed schema does not appear to be a joi schema.");
