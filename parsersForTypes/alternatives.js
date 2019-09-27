@@ -42,11 +42,9 @@ const parser = (joiSchema, state, convert) => {
     const obj = joiSchema._inner.matches[0];
 
     return makeOptions(
-      {
-        peek: convert(obj.peek, state),
-        then: convert(obj.then, state),
-        otherwise: convert(obj.otherwise, state)
-      },
+      convert(obj.peek, state),
+      convert(obj.then, state),
+      convert(obj.otherwise, state),
       state,
       convert
     );

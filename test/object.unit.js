@@ -1,0 +1,212 @@
+const chai = require("chai");
+
+const { expect } = chai;
+
+const chaiAsPromised = require("chai-as-promised");
+const sinonChai = require("sinon-chai");
+const { convert } = require("../index");
+
+chai.use(chaiAsPromised);
+chai.use(sinonChai);
+
+const Joi = require("@hapi/joi");
+
+describe("Joi Object to OpenAPI", () => {
+  beforeEach(() => {});
+
+  describe("When an object is given with strings keys", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object()
+        .keys({
+          code: Joi.string(),
+          text: Joi.string()
+        })
+        .and("code", "text");
+      expectedObj = {
+        type: "object",
+        properties: {
+          code: {
+            type: "string"
+          },
+          text: {
+            type: "string"
+          }
+        }
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When an object with one conditional is given", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object().keys({
+        digit: Joi.string().regex(/^([abcdABCD0-9*#pP])+$/),
+        date: Joi.alternatives(
+          Joi.string()
+            .allow("")
+            .allow(null),
+          Joi.object().unknown()
+        ),
+        sequence: Joi.number().integer(),
+        duration: Joi.when("method", {
+          is: "in",
+          then: Joi.number()
+            .integer()
+            .required(),
+          otherwise: Joi.forbidden()
+        }),
+        method: Joi.string()
+          .valid("in")
+          .optional()
+      });
+      expectedObj = {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              digit: {
+                type: "string",
+                pattern: "^([abcdABCD0-9*#pP])+$"
+              },
+              date: {
+                oneOf: [
+                  {
+                    type: "string",
+                    nullable: true
+                  },
+                  {
+                    type: "object"
+                  }
+                ]
+              },
+              sequence: {
+                type: "integer"
+              },
+              duration: {
+                type: "integer"
+              },
+              method: {
+                type: "string",
+                enum: ["in"]
+              }
+            },
+            required: ["duration"]
+          },
+          {
+            type: "object",
+            properties: {
+              digit: {
+                type: "string",
+                pattern: "^([abcdABCD0-9*#pP])+$"
+              },
+              date: {
+                oneOf: [
+                  {
+                    type: "string",
+                    nullable: true
+                  },
+                  {
+                    type: "object"
+                  }
+                ]
+              },
+              sequence: {
+                type: "integer"
+              }
+            }
+          }
+        ]
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When an object with multiple conditional with same value and reference is given", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object().keys({
+        body: Joi.object().keys({
+          stream: Joi.string()
+            .valid(["inbound", "outbound"])
+            .required()
+        }),
+        sender: Joi.when(Joi.ref("body.stream"), {
+          is: "outbound",
+          then: Joi.string(),
+          otherwise: Joi.any().forbidden()
+        }),
+        receiver: Joi.when(Joi.ref("body.stream"), {
+          is: "outbound",
+          then: Joi.string().required(),
+          otherwise: Joi.any().forbidden()
+        }),
+        timestamp: Joi.string()
+          .allow("")
+          .required()
+      });
+      expectedObj = {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              body: {
+                type: "object",
+                properties: {
+                  stream: {
+                    type: "string",
+                    enum: ["outbound"]
+                  }
+                },
+                required: ["stream"]
+              },
+              sender: {
+                type: "string"
+              },
+              receiver: {
+                type: "string"
+              },
+              timestamp: {
+                type: "string"
+              }
+            },
+            required: ["timestamp", "receiver"]
+          },
+          {
+            type: "object",
+            properties: {
+              body: {
+                type: "object",
+                properties: {
+                  stream: {
+                    type: "string",
+                    enum: ["inbound"]
+                  }
+                },
+                required: ["stream"]
+              },
+              timestamp: {
+                type: "string"
+              }
+            },
+            required: ["timestamp"]
+          }
+        ]
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+});
