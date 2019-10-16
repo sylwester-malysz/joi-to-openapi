@@ -209,4 +209,84 @@ describe("Joi Object to OpenAPI", () => {
     it("should convert the object in the proper open-api", () =>
       expect(convert(obj)).deep.equal(expectedObj));
   });
+
+  describe("When an object with string and ", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object()
+        .keys({
+          identifier: Joi.string()
+            .allow(null)
+            .optional(),
+          name: Joi.string()
+            .allow(null)
+            .optional(),
+          channel: Joi.string().when("user", {
+            is: Joi.exist(),
+            then: Joi.optional(),
+            otherwise: Joi.required()
+          }),
+          action: Joi.string()
+            .valid(["create", "delete"])
+            .required(),
+          user: Joi.string().optional()
+        })
+        .or("user_id", "user_name")
+        .unknown();
+      expectedObj = {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              identifier: {
+                type: "string",
+                nullable: true
+              },
+              name: {
+                type: "string",
+                nullable: true
+              },
+              channel: {
+                type: "string"
+              },
+              action: {
+                type: "string",
+                enum: ["create", "delete"]
+              },
+              user: {
+                type: "string"
+              }
+            },
+            required: ["action"]
+          },
+          {
+            type: "object",
+            properties: {
+              identifier: {
+                type: "string",
+                nullable: true
+              },
+              name: {
+                type: "string",
+                nullable: true
+              },
+              channel: {
+                type: "string"
+              },
+              action: {
+                type: "string",
+                enum: ["create", "delete"]
+              }
+            },
+            required: ["action", "channel"]
+          }
+        ]
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
 });

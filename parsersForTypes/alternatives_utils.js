@@ -131,7 +131,12 @@ const cleanFromOverlapping = (obj1, obj2, state, convert) => {
 const makeDiff = (obj1, obj2, state, convert) => {
   const supportFn = {
     string: (obj1, obj2) => {
-      const remainingItems = obj1.enum.diff(obj2.enum);
+      if (!obj1.enum && !obj2.enum) return [undefined, false];
+      if (!obj1.enum) {
+        const oldEnum = obj1.not ? obj1.not.enum || [] : [];
+        return [{ ...obj1, not: { enum: [...oldEnum, ...obj2.enum] } }, false];
+      }
+      const remainingItems = obj1.enum.diff(obj2.enum || []);
       if (remainingItems.length == 0) {
         return [undefined, false];
       }
@@ -260,6 +265,18 @@ const createOpenApiObject = (path, root, obj) =>
     }, obj)
   });
 
+const createPeekAlternative = (
+  is,
+  thennable,
+  otherwise,
+  objectPath,
+  fullObject
+) => ({
+  peek: createOpenApiObject([...objectPath], {}, is),
+  then: buildAlternative(thennable, fullObject),
+  otherwise: buildAlternative(otherwise, fullObject)
+});
+
 const createPeeks = (options, originalObj) =>
   Object.entries(options).reduce((acc, [k, v]) => {
     const objectPath = k.split(".");
@@ -269,13 +286,30 @@ const createPeeks = (options, originalObj) =>
       v.reference
     );
 
-    const peeksAlternatives = Object.values(v.alternatives).map(
-      alternative => ({
-        peek: createOpenApiObject([...objectPath], {}, alternative.is),
-        then: buildAlternative(alternative.options.thennable, fullObject),
-        otherwise: buildAlternative(alternative.options.otherwise, fullObject)
-      })
-    );
+    const alt = v.allCases
+      ? [
+          createPeekAlternative(
+            v.allCases.is,
+            v.allCases.options.thennable,
+            v.allCases.options.otherwise,
+            objectPath,
+            fullObject
+          )
+        ]
+      : [];
+
+    const peeksAlternatives = [
+      ...Object.values(v.alternatives).map(alternative =>
+        createPeekAlternative(
+          alternative.is,
+          alternative.options.thennable,
+          alternative.options.otherwise,
+          objectPath,
+          fullObject
+        )
+      ),
+      ...alt
+    ];
 
     return acc.length === 0
       ? peeksAlternatives
@@ -328,33 +362,61 @@ const joinOption = (option, opt, key) => {
   return option;
 };
 
+const getStoredKeyFromOption = (option, objChildren, state, convert) => {
+  if (option.is && option.is.type === "any") {
+    option.is = retrieveReference(option["ref"], objChildren, state, convert);
+  }
+  return option;
+};
+
+const isGlobalRepresentation = obj => obj.type === "string" && !obj.enum;
+
 const groupByOptions = (opts, objChildren, state, convert) =>
   opts.reduce((store, opt) => {
     return opt.options.reduce((store, option) => {
-      const storeKey = option.is.enum.join(".");
+      const maybeConvertedOption = getStoredKeyFromOption(
+        option,
+        objChildren,
+        state,
+        convert
+      );
       const reference = option["ref"];
       const referenceContainer = store[reference] || {
         reference: retrieveReference(reference, objChildren, state, convert),
         alternatives: {}
       };
-      const enumContainer = referenceContainer.alternatives[storeKey] || {
-        is: option.is,
-        options: {}
-      };
-
-      return {
-        ...store,
-        [reference]: {
-          ...referenceContainer,
-          alternatives: {
-            ...referenceContainer.referenceContainer,
-            [storeKey]: {
-              ...enumContainer,
-              options: joinOption(enumContainer.options, option, opt.key)
+      if (isGlobalRepresentation(maybeConvertedOption.is)) {
+        return {
+          ...store,
+          [reference]: {
+            ...referenceContainer,
+            allCases: {
+              is: maybeConvertedOption.is,
+              options: joinOption({}, maybeConvertedOption, opt.key)
             }
           }
-        }
-      };
+        };
+      } else {
+        const storeKey = maybeConvertedOption.is.enum.join(".");
+        const enumContainer = referenceContainer.alternatives[storeKey] || {
+          is: option.is,
+          options: {}
+        };
+
+        return {
+          ...store,
+          [reference]: {
+            ...referenceContainer,
+            alternatives: {
+              ...referenceContainer.referenceContainer,
+              [storeKey]: {
+                ...enumContainer,
+                options: joinOption(enumContainer.options, option, opt.key)
+              }
+            }
+          }
+        };
+      }
     }, store);
   }, {});
 

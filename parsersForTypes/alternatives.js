@@ -13,11 +13,21 @@ const convertIfPresent = (cond, convert, state) => {
   return c;
 };
 
+const getConvertedIs = (joiObj, state, convert) => {
+  if (joiObj) {
+    if (joiObj._type === "any") return { type: "any" };
+
+    return convert(joiObj, state);
+  }
+
+  return undefined;
+};
+
 const getOptionsFromRef = (matches, state, convert) => {
   const schema = {
     optOf: [
       ...matches.map(s => {
-        const is = s.is ? convert(s.is, state) : undefined;
+        const is = getConvertedIs(s.is, state, convert);
         const ref = s.ref ? s.ref.key : undefined;
         return {
           is,
