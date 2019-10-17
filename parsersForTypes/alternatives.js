@@ -7,6 +7,7 @@ const getOneOfSchemas = (matches, state, convert) => ({
 const convertIfPresent = (cond, convert, state) => {
   let c;
   if (cond) {
+    if (cond._flags.presence === "forbidden") return undefined;
     c = convert(cond, state);
     if (c) c.required = cond._flags.presence === "required";
   }

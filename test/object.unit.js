@@ -210,7 +210,7 @@ describe("Joi Object to OpenAPI", () => {
       expect(convert(obj)).deep.equal(expectedObj));
   });
 
-  describe("When an object with string and ", () => {
+  describe("When an object with string is optional or required basing on existence", () => {
     let obj;
     let expectedObj;
 
@@ -281,6 +281,90 @@ describe("Joi Object to OpenAPI", () => {
               }
             },
             required: ["action", "channel"]
+          }
+        ]
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe.only("When an object with string is forbidden or required basing on existence", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object()
+        .keys({
+          identifier: Joi.string()
+            .allow(null)
+            .optional(),
+          name: Joi.string()
+            .allow(null)
+            .optional(),
+          channel: Joi.string().when("transition", {
+            is: "up",
+            then: Joi.forbidden(),
+            otherwise: Joi.required()
+          }),
+          action: Joi.string()
+            .valid(["create", "delete"])
+            .required(),
+          transition: Joi.string()
+            .valid(["up", "down"])
+            .required()
+        })
+        .or("user_id", "user_name")
+        .unknown();
+      expectedObj = {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              identifier: {
+                type: "string",
+                nullable: true
+              },
+              name: {
+                type: "string",
+                nullable: true
+              },
+              action: {
+                type: "string",
+                enum: ["create", "delete"]
+              },
+              transition: {
+                type: "string",
+                enum: ["up"]
+              }
+            },
+            required: ["action", "transition"]
+          },
+          {
+            type: "object",
+            properties: {
+              identifier: {
+                type: "string",
+                nullable: true
+              },
+              name: {
+                type: "string",
+                nullable: true
+              },
+              channel: {
+                type: "string"
+              },
+              action: {
+                type: "string",
+                enum: ["create", "delete"]
+              },
+              transition: {
+                type: "string",
+                enum: ["down"]
+              }
+            },
+            required: ["action", "transition", "channel"]
           }
         ]
       };
