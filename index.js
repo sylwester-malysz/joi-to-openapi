@@ -114,6 +114,6 @@ const convertAux = (joiSchema, state) => {
   return swaggerSchema ? Object.assign(swaggerSchema, decorator) : undefined;
 };
 
-const convert = joiSchema => convertAux(joiSchema, {});
+const convert = (joiSchema, state = {}) => convertAux(joiSchema, state);
 
 module.exports = { convert };
