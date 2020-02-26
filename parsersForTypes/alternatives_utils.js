@@ -162,15 +162,15 @@ const diffObject = (obj1, obj2, state, convert, supportFn) => {
         delete acc.properties[k];
         return child
           ? [
-              {
-                ...acc,
-                properties: {
-                  ...acc.properties,
-                  [k]: child
-                }
-              },
-              keep && noTotallyRemoved
-            ]
+            {
+              ...acc,
+              properties: {
+                ...acc.properties,
+                [k]: child
+              }
+            },
+            keep && noTotallyRemoved
+          ]
           : [acc, keep];
       }
 
@@ -288,14 +288,14 @@ const createPeeks = (options, originalObj) =>
 
     const alt = v.allCases
       ? [
-          createPeekAlternative(
-            v.allCases.is,
-            v.allCases.options.thennable,
-            v.allCases.options.otherwise,
-            objectPath,
-            fullObject
-          )
-        ]
+        createPeekAlternative(
+          v.allCases.is,
+          v.allCases.options.thennable,
+          v.allCases.options.otherwise,
+          objectPath,
+          fullObject
+        )
+      ]
       : [];
 
     const peeksAlternatives = [
@@ -314,9 +314,9 @@ const createPeeks = (options, originalObj) =>
     return acc.length === 0
       ? peeksAlternatives
       : peeksAlternatives.reduce(
-          (objs, alt) => objs.map(o => addObject(o, alt)),
-          acc
-        );
+        (objs, alt) => objs.map(o => addObject(o, alt)),
+        acc
+      );
   }, []);
 
 const makeAlternativesFromOptions = (optOf, newObj, state, convert) => {

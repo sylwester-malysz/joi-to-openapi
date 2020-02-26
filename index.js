@@ -80,7 +80,8 @@ const convertAux = (joiSchema, state) => {
       swaggerSchema = alternativesParser(joiSchema, state, convertAux);
       break;
     case "object":
-      swaggerSchema = objectParser(joiSchema, state, convertAux);
+      const originalSchema = (state.parentObject || {}).originalSchema || joiSchema
+      swaggerSchema = objectParser(joiSchema, { ...state, parentObject: { originalSchema } }, convertAux);
       break;
     case "array":
       swaggerSchema = arrayParser(joiSchema, state, convertAux);

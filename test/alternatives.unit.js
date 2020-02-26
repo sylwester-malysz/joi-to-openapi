@@ -12,7 +12,7 @@ chai.use(sinonChai);
 const Joi = require("@hapi/joi");
 
 describe("Joi Alternatives to OpenAPI", () => {
-  beforeEach(() => {});
+  beforeEach(() => { });
 
   describe("When .when is applied to an object", () => {
     let obj;

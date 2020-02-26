@@ -12,7 +12,7 @@ chai.use(sinonChai);
 const Joi = require("@hapi/joi");
 
 describe("Joi Object to OpenAPI", () => {
-  beforeEach(() => {});
+  beforeEach(() => { });
 
   describe("When an object is given with strings keys", () => {
     let obj;
@@ -290,7 +290,7 @@ describe("Joi Object to OpenAPI", () => {
       expect(convert(obj)).deep.equal(expectedObj));
   });
 
-  describe.only("When an object with string is forbidden or required basing on existence", () => {
+  describe("When an object with string is forbidden or required basing on existence", () => {
     let obj;
     let expectedObj;
 
@@ -372,5 +372,69 @@ describe("Joi Object to OpenAPI", () => {
 
     it("should convert the object in the proper open-api", () =>
       expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe.only("When .when is applied to an object which has a reference in an upper scope", () => {
+    let obj;
+    let expectedObjUpperScope;
+
+    beforeEach(() => {
+      obj = Joi.object({
+        someKey: Joi.string(),
+        sequence: Joi.string(),
+        embeed: Joi.object({
+          struct: Joi.when(Joi.ref("someKey"), {
+            is: Joi.exist(),
+            then: Joi.string().required(),
+            // .alternatives()
+            // .try(Joi.string(), Joi.number())
+            // .required(),
+            otherwise: Joi.forbidden()
+          })
+        })
+      })
+
+
+      expectedObjUpperScope = {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              someKey: {
+                type: "string"
+              },
+              sequence: {
+                type: "string"
+              },
+              embeed: {
+                type: "object",
+                properties: {
+                  struct: {
+                    type: "string"
+                  },
+                  required: ["struct"]
+                }
+              }
+            }
+          },
+          {
+            type: "object",
+            properties: {
+              sequence: {
+                type: "string"
+              },
+              embeed: {
+                type: "object",
+                properties: {}
+              }
+            }
+          }
+        ]
+      };
+    });
+
+    it("should convert the object in the proper open-api", () => {
+      expect(convert(obj)).deep.equal(expectedObjUpperScope)
+    });
   });
 });
