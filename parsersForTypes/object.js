@@ -129,9 +129,8 @@ const parser = (joiSchema, state, convert) => {
     const optionObject = makeAlternativesFromOptions(currentScopeOpt, newObj, state, convert);
 
     if (joiSchema === state.parentObject.originalSchema) {
-
       let c = notInScopeOpt.reduce((acc, opt) => opt.options.reduce((acc, o) => {
-        return addObject({ type: "object", properties: { [opt.key]: o.otherwise } }, acc)
+        return addObject({ type: "object", properties: { [opt.key]: o.is ? o.otherwise : o.then } }, acc)
       }, acc), optionObject)
       return c
     }

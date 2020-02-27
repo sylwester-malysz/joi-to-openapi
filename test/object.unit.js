@@ -485,52 +485,51 @@ describe("Joi Object to OpenAPI", () => {
     });
   });
 
-  // describe.only("When .when is applied to a which doesn't exist", () => {
-  //   let obj;
-  //   let expectedObjUpperScope;
+  describe("When .when is applied to a which doesn't exist", () => {
+    let obj;
+    let expectedObjUpperScope;
 
-  //   beforeEach(() => {
-  //     obj = Joi.object({
-  //       sequence: Joi.string(),
-  //       embeed: Joi.object({
-  //         struct: Joi.when(Joi.ref("someKey"), {
-  //           is: Joi.forbidden(),
-  //           then: Joi
-  //             .alternatives()
-  //             .try(Joi.string(), Joi.number())
-  //             .required(),
-  //           otherwise: Joi.forbidden()
-  //         })
-  //       })
-  //     })
+    beforeEach(() => {
+      obj = Joi.object({
+        sequence: Joi.string(),
+        embeed: Joi.object({
+          struct: Joi.when(Joi.ref("someKey"), {
+            is: Joi.forbidden(),
+            then: Joi
+              .alternatives()
+              .try(Joi.string(), Joi.number())
+              .required(),
+            otherwise: Joi.forbidden()
+          })
+        })
+      })
 
 
-  //     expectedObjUpperScope = {
-  //       type: "object",
-  //       properties: {
-  //         sequence: {
-  //           type: "string"
-  //         },
-  //         embeed: {
-  //           type: "object",
-  //           properties: {
-  //             struct: {
-  //               oneOf: [
-  //                 { type: "string" },
-  //                 { type: "number", format: "float" }
-  //               ]
-  //             },
-  //             required: ["struct"]
-  //           }
-  //         }
-  //       }
-  //     };
-  //   });
+      expectedObjUpperScope = {
+        type: "object",
+        properties: {
+          sequence: {
+            type: "string"
+          },
+          embeed: {
+            type: "object",
+            properties: {
+              struct: {
+                oneOf: [
+                  { type: "string" },
+                  { type: "number", format: "float" }
+                ]
+              },
+              required: ["struct"]
+            }
+          }
+        }
+      };
+    });
 
-  //   it("should convert the object in the proper open-api", () => {
-  //     const converted = convert(obj)
-  //     console.log("converted", converted)
-  //     expect(converted).deep.equal(expectedObjUpperScope)
-  //   });
-  // });
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj)
+      expect(converted).deep.equal(expectedObjUpperScope)
+    });
+  });
 });
