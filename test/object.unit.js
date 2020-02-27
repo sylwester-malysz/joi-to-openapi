@@ -385,10 +385,10 @@ describe("Joi Object to OpenAPI", () => {
         embeed: Joi.object({
           struct: Joi.when(Joi.ref("someKey"), {
             is: Joi.exist(),
-            then: Joi.string().required(),
-            // .alternatives()
-            // .try(Joi.string(), Joi.number())
-            // .required(),
+            then: Joi //.string().required(),
+              .alternatives()
+              .try(Joi.string(), Joi.number())
+              .required(),
             otherwise: Joi.forbidden()
           })
         })
@@ -410,7 +410,10 @@ describe("Joi Object to OpenAPI", () => {
                 type: "object",
                 properties: {
                   struct: {
-                    type: "string"
+                    oneOf: [
+                      { type: "string" },
+                      { type: "number", format: "float" }
+                    ]
                   },
                   required: ["struct"]
                 }
@@ -434,7 +437,9 @@ describe("Joi Object to OpenAPI", () => {
     });
 
     it("should convert the object in the proper open-api", () => {
-      expect(convert(obj)).deep.equal(expectedObjUpperScope)
+      const converted = convert(obj)
+      console.log("converted", JSON.stringify(converted))
+      expect(converted).deep.equal(expectedObjUpperScope)
     });
   });
 });

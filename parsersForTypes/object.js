@@ -1,14 +1,21 @@
 const { retrievePrintedReference } = require("./utils");
 const { makeAlternativesFromOptions } = require("./alternatives_utils");
 
+const getBodyObjKey = (condition) => {
+  if ("oneOf" in condition) return { oneOf: condition.oneOf }
+
+  return {
+    type: condition.type
+  }
+}
 
 const wrapConditionInObject = (condition, objKey) => {
+
   const wrap = condition ? {
-    [objKey]: {
-      type: condition.type
-    },
+    [objKey]: getBodyObjKey(condition),
     ...(condition.required && { required: [objKey] })
   } : undefined
+
   return {
     type: "object",
     properties: wrap
@@ -16,6 +23,7 @@ const wrapConditionInObject = (condition, objKey) => {
 }
 
 const wrapOption = (key) => obj => {
+
   const options = obj.options.map(option => {
     return {
       is: option.is,
