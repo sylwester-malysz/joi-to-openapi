@@ -380,7 +380,7 @@ describe("Joi Object to OpenAPI", () => {
 
     beforeEach(() => {
       obj = Joi.object({
-        someKey: Joi.string(),
+        someKey: Joi.string().allow(null),
         sequence: Joi.string(),
         embeed: Joi.object({
           struct: Joi.when(Joi.ref("someKey"), {
@@ -401,7 +401,8 @@ describe("Joi Object to OpenAPI", () => {
             type: "object",
             properties: {
               someKey: {
-                type: "string"
+                type: "string",
+                nullable: true
               },
               sequence: {
                 type: "string"

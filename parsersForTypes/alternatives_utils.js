@@ -226,6 +226,7 @@ const addObject = (obj1, obj2) =>
     let computedChild = v;
     const vType = typeof v;
     if (vType === "string") return { ...acc, [k]: computedChild };
+    if (vType === "boolean") return { ...acc, [k]: computedChild };
     if (vType === "object" && !(v instanceof Array))
       computedChild = addObject(child, v);
     if (v instanceof Array) return { ...acc, [k]: computedChild };
@@ -327,7 +328,6 @@ const makeAlternativesFromOptions = (optOf, newObj, state, convert) => {
     return newObj
   } else {
     const grouppedOptions = groupByOptions(nonEmptyOptions, newObj, state, convert);
-
     return {
       oneOf: createPeeks(grouppedOptions, newObj)
         .map(p => {
