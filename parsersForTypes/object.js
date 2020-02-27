@@ -1,5 +1,5 @@
 const { retrievePrintedReference } = require("./utils");
-const { makeAlternativesFromOptions } = require("./alternatives_utils");
+const { makeAlternativesFromOptions, addObject } = require("./alternatives_utils");
 
 const getBodyObjKey = (condition) => {
   if ("oneOf" in condition) return { oneOf: condition.oneOf }
@@ -10,16 +10,22 @@ const getBodyObjKey = (condition) => {
 }
 
 const wrapConditionInObject = (condition, objKey) => {
-
-  const wrap = condition ? {
+  const properties = condition ? {
     [objKey]: getBodyObjKey(condition),
     ...(condition.required && { required: [objKey] })
   } : undefined
 
-  return {
+  const obj = {
     type: "object",
-    properties: wrap
   }
+
+  if (properties) {
+    return {
+      ...obj, properties
+    }
+  }
+
+  return obj
 }
 
 const wrapOption = (key) => obj => {
@@ -43,13 +49,16 @@ const getChild = (child, state, convert) => {
   for (const children of child) {
     let convertedChild = convert(children.schema, state);
     if (convertedChild.optOf) {
+
       properties.optOf = [
         ...(properties.optOf || []),
         { options: convertedChild.optOf, key: children.key }
       ];
     }
-    if (convertedChild.properties && convertedChild.properties.inheritedOptOf) {
+    else if (convertedChild.properties && convertedChild.properties.inheritedOptOf) {
       const { inheritedOptOf, ...rest } = convertedChild.properties;
+
+
       properties = {
         ...properties,
         ...rest,
@@ -77,14 +86,25 @@ const getRequiredFields = child => {
 };
 
 const getScopeAtPartition = (obj, currentScope) => {
-  const notInScope = obj.options.filter(option => currentScope.properties[option.ref] === undefined);
-  const inScope = obj.options.filter(option => currentScope.properties[option.ref] !== undefined);
+
+  const findInScope = (object, path) => path.split(".").reduce((obj, key) => {
+    if (obj && obj.properties) {
+      const nest = obj.properties;
+      if (nest) return nest[key]
+    }
+    return obj
+  }, object)
+
+
+  const notInScope = obj.options.filter(option => findInScope(currentScope, option.ref) === undefined);
+  const inScope = obj.options.filter(option => findInScope(currentScope, option.ref) !== undefined);
   return [[{ ...obj, options: inScope }], [{ ...obj, options: notInScope }]]
 }
 
 const aggregateScopedPartitions = ({ scope, acc: [left, right] }, obj) => {
   [leftF, rightF] = getScopeAtPartition(obj, scope);
-  return [[...leftF, ...left], [...rightF, ...right]]
+
+  return { scope, acc: [[...leftF, ...left], [...rightF, ...right]] }
 }
 
 function needsOptOfPropagation(optList) {
@@ -93,17 +113,29 @@ function needsOptOfPropagation(optList) {
 
 const parser = (joiSchema, state, convert) => {
 
+
+
   const child = getChild(joiSchema._inner.children, state, convert);
   const requiredFields = getRequiredFields(joiSchema._inner.children);
 
   const obj = Object.assign({ type: "object" }, child, requiredFields);
 
+
   if (obj.properties && obj.properties.optOf) {
     const { optOf, ...rest } = obj.properties;
     const newObj = { ...obj, properties: rest };
-    const [currentScopeOpt, notInScopeOpt] = optOf.reduce(aggregateScopedPartitions, { scope: newObj, acc: [[], []] });
+    const { acc: [currentScopeOpt, notInScopeOpt] } = optOf.reduce(aggregateScopedPartitions, { scope: newObj, acc: [[], []] });
+
     const optionObject = makeAlternativesFromOptions(currentScopeOpt, newObj, state, convert);
-    if (needsOptOfPropagation(notInScopeOpt)) {
+
+    if (joiSchema === state.parentObject.originalSchema) {
+
+      let c = notInScopeOpt.reduce((acc, opt) => opt.options.reduce((acc, o) => {
+        return addObject({ type: "object", properties: { [opt.key]: o.otherwise } }, acc)
+      }, acc), optionObject)
+      return c
+    }
+    else if (needsOptOfPropagation(notInScopeOpt)) {
       optionObject.properties = { ...optionObject.properties, inheritedOptOf: notInScopeOpt }
     }
 

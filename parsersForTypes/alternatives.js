@@ -15,6 +15,7 @@ const convertIfPresent = (cond, convert, state) => {
 };
 
 const getConvertedIs = (joiObj, state, convert) => {
+
   if (joiObj) {
     if (joiObj._type === "any") return { type: "any" };
 

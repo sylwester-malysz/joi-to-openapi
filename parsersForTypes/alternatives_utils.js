@@ -320,14 +320,22 @@ const createPeeks = (options, originalObj) =>
   }, []);
 
 const makeAlternativesFromOptions = (optOf, newObj, state, convert) => {
-  const grouppedOptions = groupByOptions(optOf, newObj, state, convert);
-  return {
-    oneOf: createPeeks(grouppedOptions, newObj)
-      .map(p => {
-        return makeOptions(p.peek, p.then, p.otherwise, state, convert);
-      })
-      .reduce((acc, v) => [...acc, ...v.oneOf], [])
-  };
+
+
+  const nonEmptyOptions = optOf.filter(opt => opt.options.length !== 0)
+  if (nonEmptyOptions.length === 0) {
+    return newObj
+  } else {
+    const grouppedOptions = groupByOptions(nonEmptyOptions, newObj, state, convert);
+
+    return {
+      oneOf: createPeeks(grouppedOptions, newObj)
+        .map(p => {
+          return makeOptions(p.peek, p.then, p.otherwise, state, convert);
+        })
+        .reduce((acc, v) => [...acc, ...v.oneOf], [])
+    };
+  }
 };
 
 const getProperty = (refName, properties) => {
@@ -420,4 +428,4 @@ const groupByOptions = (opts, objChildren, state, convert) =>
     }, store);
   }, {});
 
-module.exports = { makeOptions, makeAlternativesFromOptions };
+module.exports = { makeOptions, makeAlternativesFromOptions, addObject };
