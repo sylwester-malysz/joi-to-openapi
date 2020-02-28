@@ -15,9 +15,9 @@ const convertIfPresent = (cond, convert, state) => {
 };
 
 const getConvertedIs = (joiObj, state, convert) => {
-
   if (joiObj) {
-    if (joiObj._type === "any" && joiObj._flags.presence !== "forbidden") return { type: "any" };
+    if (joiObj._type === "any" && joiObj._flags.presence !== "forbidden")
+      return { type: "any" };
 
     return convert(joiObj, state);
   }
