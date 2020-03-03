@@ -12,7 +12,7 @@ chai.use(sinonChai);
 const Joi = require("@hapi/joi");
 
 describe("Joi Alternatives to OpenAPI", () => {
-  beforeEach(() => { });
+  beforeEach(() => {});
 
   describe("When .when is applied to an object", () => {
     let obj;
@@ -159,7 +159,143 @@ describe("Joi Alternatives to OpenAPI", () => {
       };
     });
 
-    it("should convert the object in the proper open-api", () =>
-      expect(convert(obj)).deep.equal(expectedObj));
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      return expect(converted).deep.equal(expectedObj);
+    });
+  });
+
+  describe("When .when is used inside alternative.try", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      const objCond = Joi.object({
+        sequence: Joi.string(),
+        embeed: Joi.object({
+          struct: Joi.when(Joi.ref("someKey"), {
+            is: Joi.exist(),
+            then: Joi.alternatives()
+              .try(Joi.string(), Joi.number())
+              .required(),
+            otherwise: Joi.forbidden()
+          })
+        }).required()
+      });
+
+      obj = Joi.object({
+        someKey: Joi.string().allow(null),
+        body: Joi.alternatives().try(
+          objCond,
+          Joi.object().keys({
+            timestamp: Joi.object().keys({
+              deleted: Joi.string()
+                .isoDate()
+                .description("Date in ISO format")
+                .required()
+            })
+          })
+        )
+      });
+
+      expectedObj = {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              someKey: {
+                type: "string",
+                nullable: true
+              },
+              body: {
+                oneOf: [
+                  {
+                    type: "object",
+                    properties: {
+                      timestamp: {
+                        type: "object",
+                        properties: {
+                          deleted: {
+                            type: "string",
+                            format: "date-time",
+                            description: "Date in ISO format"
+                          }
+                        },
+                        required: ["deleted"]
+                      }
+                    }
+                  },
+                  {
+                    type: "object",
+                    properties: {
+                      sequence: {
+                        type: "string"
+                      },
+                      embeed: {
+                        type: "object",
+                        properties: {
+                          struct: {
+                            oneOf: [
+                              { type: "string" },
+                              { type: "number", format: "float" }
+                            ]
+                          }
+                        },
+                        required: ["struct"]
+                      }
+                    },
+                    required: ["embeed"]
+                  }
+                ]
+              }
+            },
+            required: ["someKey"]
+          },
+          {
+            type: "object",
+            properties: {
+              body: {
+                oneOf: [
+                  {
+                    type: "object",
+                    properties: {
+                      timestamp: {
+                        type: "object",
+                        properties: {
+                          deleted: {
+                            type: "string",
+                            format: "date-time",
+                            description: "Date in ISO format"
+                          }
+                        },
+                        required: ["deleted"]
+                      }
+                    }
+                  },
+                  {
+                    type: "object",
+                    properties: {
+                      sequence: {
+                        type: "string"
+                      },
+                      embeed: {
+                        type: "object",
+                        properties: {}
+                      }
+                    },
+                    required: ["embeed"]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      };
+    });
+
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      expect(converted).deep.equal(expectedObj);
+    });
   });
 });

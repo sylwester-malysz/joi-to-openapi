@@ -1,15 +1,67 @@
 const { makeOptions } = require("./alternatives_utils");
+const { merge } = require("./merge_utils");
+const { getBodyObjKey } = require("./utils");
 
-const getOneOfSchemas = (matches, state, convert) => ({
-  oneOf: [...matches.map(allowedType => convert(allowedType.schema, state))]
-});
+const mergeObjects = (condition, originalObj, objKey, state, convert) => {
+  const properties = condition
+    ? {
+        properties: { [objKey]: getBodyObjKey(condition) }
+      }
+    : undefined;
+  const required =
+    condition && condition.isRequired ? { required: [objKey] } : undefined;
+  return merge(
+    {
+      type: "object",
+      ...properties,
+      ...required
+    },
+    originalObj,
+    state,
+    convert
+  );
+};
+
+const mergeObjectInOption = (obj2Merge, state, convert) => obj => {
+  return {
+    options: obj.options.map(option => {
+      return {
+        is: option.is,
+        then: mergeObjects(option.then, obj2Merge, obj.key, state, convert),
+        otherwise: mergeObjects(
+          option.otherwise,
+          obj2Merge,
+          obj.key,
+          state,
+          convert
+        ),
+        ref: option.ref
+      };
+    })
+  };
+};
+
+const getOneOfSchemas = (matches, state, convert) =>
+  matches.reduce(
+    (acc, match) => {
+      const { inheritedOptOf, ...rest } = convert(match.schema, state);
+      if (inheritedOptOf)
+        acc.inheritedOptOf = [
+          ...(acc.inheritedOptOf || []),
+          ...inheritedOptOf.map(mergeObjectInOption(rest, state, convert))
+        ];
+      else acc.oneOf = [...acc.oneOf, rest];
+      return acc;
+    },
+    { oneOf: [] }
+  );
 
 const convertIfPresent = (cond, convert, state) => {
   let c;
   if (cond) {
     if (cond._flags.presence === "forbidden") return undefined;
     c = convert(cond, state);
-    if (c) c.required = cond._flags.presence === "required";
+    if (c) c.isRequired = cond._flags.presence === "required";
   }
   return c;
 };

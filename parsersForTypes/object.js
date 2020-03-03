@@ -1,29 +1,23 @@
-const {
-  makeAlternativesFromOptions,
-  addObject
-} = require("./alternatives_utils");
+const { makeAlternativesFromOptions } = require("./alternatives_utils");
+const { merge } = require("./merge_utils");
+const { getBodyObjKey } = require("./utils");
+const _ = require("lodash");
 
-const getBodyObjKey = condition => {
-  if ("oneOf" in condition) return { oneOf: condition.oneOf };
-
-  return {
-    type: condition.type
-  };
-};
+const deepcopy = require("deepcopy");
 
 const wrapConditionInObject = (condition, objKey) => {
+  if (!objKey) return getBodyObjKey(condition);
   const properties = condition
     ? {
-        properties: {
-          [objKey]: getBodyObjKey(condition),
-          ...(condition.required && { required: [objKey] })
-        }
+        properties: { [objKey]: getBodyObjKey(condition) }
       }
     : undefined;
-
+  const required =
+    condition && condition.isRequired ? { required: [objKey] } : undefined;
   return {
     type: "object",
-    ...properties
+    ...properties,
+    ...required
   };
 };
 
@@ -52,11 +46,13 @@ const getChild = (child, state, convert) => {
         { options: convertedChild.optOf, key: children.key }
       ];
     } else if (convertedChild.inheritedOptOf) {
+      const { inheritedOptOf, ...rest } = convertedChild;
+      properties[children.key] = rest;
       properties = {
         ...(properties || {}),
         optOf: [
           ...(properties.optOf || []),
-          ...convertedChild.inheritedOptOf.map(wrapOption(children.key))
+          ...inheritedOptOf.map(wrapOption(children.key))
         ]
       };
     } else properties[children.key] = convertedChild;
@@ -83,10 +79,13 @@ const findObjectInScope = object => option =>
       return obj.properties[key];
     }
     return obj;
-  }, object);
+  }, deepcopy(object));
 
 const aggregateScopedPartitions = scope => ([left, right], obj) => {
-  const [inScope, notInScope] = obj.options.partition(findObjectInScope(scope));
+  const [inScope, notInScope] = _.partition(
+    obj.options,
+    findObjectInScope(scope)
+  );
   return [
     [...left, { ...obj, options: inScope }],
     [...right, { ...obj, options: notInScope }]
@@ -117,20 +116,24 @@ const parser = (joiSchema, state, convert) => {
       convert
     );
 
-    if (joiSchema === state.parentObject.originalSchema) {
+    if (state.isRoot) {
       let notFoundAlternative = notInScopeOpt.reduce(
         (acc, opt) =>
           opt.options.reduce((acc, o) => {
-            return addObject(
+            const { isRequired, ...rest } = (o.is ? o.otherwise : o.then) || {};
+            return merge(
+              acc,
               {
                 type: "object",
-                properties: { [opt.key]: o.is ? o.otherwise : o.then }
+                properties: { [opt.key]: rest }
               },
-              acc
+              state,
+              convert
             );
           }, acc),
         optionObject
       );
+
       return notFoundAlternative;
     } else if (needsOptOfPropagation(notInScopeOpt)) {
       optionObject.inheritedOptOf = notInScopeOpt;

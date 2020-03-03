@@ -7,8 +7,7 @@ const parser = schema => {
       { type: "boolean" },
       { type: "number" },
       { type: "object" },
-      { type: "string" },
-      { type: "null" }
+      { type: "string" }
     ]
   };
 };

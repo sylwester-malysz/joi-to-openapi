@@ -1,5 +1,7 @@
 const { retrievePrintedReference } = require("./utils");
 const deepcopy = require("deepcopy");
+const { merge } = require("./merge_utils");
+const _ = require("lodash");
 
 Array.prototype.equals = function(lst) {
   const [head, ...tail] = this;
@@ -8,48 +10,74 @@ Array.prototype.equals = function(lst) {
   return head === head1 && tail.equals(tail1);
 };
 
-Array.prototype.union = function(lst) {
-  const itemsVisited = this.reduce(
-    (acc, item) => ((acc[item] = true), acc),
-    {}
-  );
-  return lst.reduce((acc, item) => {
-    if (!itemsVisited[item]) {
-      return [...acc, item];
-    }
-    return acc;
-  }, this);
-};
-
-Array.prototype.partition = function(fn) {
-  return this.reduce(
-    ([truthy, falsy], item) => {
-      if (fn(item)) {
-        return [[...truthy, item], falsy];
-      }
-      return [truthy, [...falsy, item]];
-    },
-    [[], []]
-  );
-};
-
 Array.prototype.diff = function(lst) {
-  const itemsVisited = lst.reduce((acc, item) => ((acc[item] = true), acc), {});
-  return this.reduce((acc, item) => {
-    if (!itemsVisited[item]) {
-      return [...acc, item];
+  return _.difference(this, lst);
+};
+
+const areKeysPresent = (paths, obj) => {
+  return paths.reduce((acc, path) => {
+    const objByPath = path.split(".").reduce((acc, p) => {
+      if (acc && acc.properties) return acc.properties[p];
+      if (acc && !acc.properties) undefined;
+      return acc;
+    }, deepcopy(obj));
+    if (!objByPath) {
+      return [...acc, path];
     }
     return acc;
   }, []);
 };
 
+const addKeyAsRequired = (keyPath, obj) => {
+  const [head, ...tail] = keyPath;
+  if (tail.length == 0) {
+    obj.required = [...new Set([head, ...(obj.required || [])])];
+    return obj;
+  }
+  return {
+    ...obj,
+    properties: {
+      ...obj.properties,
+      [head]: addKeyAsRequired(tail, obj.properties[head])
+    }
+  };
+};
+
+const addKeysAsRequired = (keys, obj) => {
+  return keys.reduce(
+    (acc, path) => addKeyAsRequired(path.split("."), acc),
+    deepcopy(obj)
+  );
+};
+
 const makeOptions = (peek, then, otherwise, state, convert) => {
   const [falsyOptions, falsePaths] = singleFieldObject(peek);
+
+  const negativeOptions = falsyOptions.map(o =>
+    makeDiff(deepcopy(otherwise), o, state, convert)
+  );
+  const positionOption = mergeDiff(then, peek);
+  const [missingKey = [], ...keys] = negativeOptions.reduce((acc, obj) => {
+    return [...acc, areKeysPresent(falsePaths, obj)];
+  }, []);
+  const positiveMissingKeys = areKeysPresent(falsePaths, positionOption);
+  const allNegativeMissingKeys = keys.reduce(_.intersection, missingKey);
+
+  const zipNegativeAndKeys = _.zip(negativeOptions, [missingKey, ...keys]);
+
   return {
     oneOf: [
-      mergeDiff(then, peek),
+      addKeysAsRequired(
+        allNegativeMissingKeys.diff(positiveMissingKeys),
+        positionOption
+      ),
       ...removeOverlapping(
-        falsyOptions.map(o => makeDiff(deepcopy(otherwise), o, state, convert)),
+        zipNegativeAndKeys.reduce((acc, [obj, keys]) => {
+          return [
+            ...acc,
+            addKeysAsRequired(allNegativeMissingKeys.diff(keys), obj)
+          ];
+        }, []),
         falsePaths,
         state,
         convert
@@ -162,15 +190,15 @@ const diffObject = (obj1, obj2, state, convert, supportFn) => {
         delete acc.properties[k];
         return child
           ? [
-            {
-              ...acc,
-              properties: {
-                ...acc.properties,
-                [k]: child
-              }
-            },
-            keep && noTotallyRemoved
-          ]
+              {
+                ...acc,
+                properties: {
+                  ...acc.properties,
+                  [k]: child
+                }
+              },
+              keep && noTotallyRemoved
+            ]
           : [acc, keep];
       }
 
@@ -220,83 +248,87 @@ const singleFieldObject = _obj => {
   return [[_obj], [""]];
 };
 
-const addObject = (obj1, obj2) =>
-  Object.entries(obj2).reduce((acc, [k, v]) => {
-    const child = acc[k] || {};
-    let computedChild = v;
-    const vType = typeof v;
-    if (vType === "string") return { ...acc, [k]: computedChild };
-    if (vType === "boolean") return { ...acc, [k]: computedChild };
-    if (vType === "object" && !(v instanceof Array))
-      computedChild = addObject(child, v);
-    if (v instanceof Array) return { ...acc, [k]: computedChild };
-    return { ...acc, [k]: { ...child, ...computedChild } };
-  }, obj1);
+const buildAlternative = (lst, originalObj, state, convert) => {
+  const [opts, noOpts] = _.partition(lst, o => o.opt);
 
-const buildAlternative = (lst, originalObj) => {
-  const [opts, noOpts] = lst.partition(o => o.opt);
   const newObj = opts.reduce(
     (acc, obj) => {
-      const { required, ...rest } = obj.opt;
-      if (required) {
+      const { isRequired, ...rest } = obj.opt;
+      if (isRequired) {
         acc.required = [...(acc.required || []), obj.key];
       }
-      const newObj = {
-        ...acc,
-        properties: addObject(acc.properties, { [obj.key]: rest })
-      };
-      return newObj;
+      return merge(
+        acc,
+        {
+          type: "object",
+          properties: { [obj.key]: rest }
+        },
+        state,
+        convert
+      );
     },
-    { ...originalObj }
+    { ...deepcopy(originalObj) }
   );
   if (newObj.required)
     newObj.required = newObj.required.diff(noOpts.map(o => o.key));
   return newObj;
 };
 
-const createOpenApiObject = (path, root, obj) =>
-  addObject(root, {
-    type: "object",
-    properties: [...path].reverse().reduce((acc, key) => {
-      let container = { ...acc };
-      if (!container.type) {
-        container = { type: "object", properties: container };
-      }
-      return { [key]: container };
-    }, obj)
-  });
+const createOpenApiObject = (path, root, obj, state, convert) => {
+  return merge(
+    root,
+    {
+      type: "object",
+      properties: [...path].reverse().reduce((acc, key) => {
+        let container = { ...acc };
+        if (!container.type) {
+          container = { type: "object", properties: container };
+        }
+        return { [key]: container };
+      }, obj)
+    },
+    state,
+    convert
+  );
+};
 
 const createPeekAlternative = (
   is,
   thennable,
   otherwise,
   objectPath,
-  fullObject
+  fullObject,
+  state,
+  convert
 ) => ({
-  peek: createOpenApiObject([...objectPath], {}, is),
-  then: buildAlternative(thennable, fullObject),
-  otherwise: buildAlternative(otherwise, fullObject)
+  peek: createOpenApiObject([...objectPath], {}, is, state, convert),
+  then: buildAlternative(thennable, fullObject, state, convert),
+  otherwise: buildAlternative(otherwise, fullObject, state, convert)
 });
 
-const createPeeks = (options, originalObj) =>
+const createPeeks = (options, originalObj, state, convert) =>
   Object.entries(options).reduce((acc, [k, v]) => {
     const objectPath = k.split(".");
     const fullObject = createOpenApiObject(
       objectPath,
       originalObj,
-      v.reference
+      v.reference,
+      state,
+      convert
     );
 
     const alt = v.allCases
       ? [
-        createPeekAlternative(
-          v.allCases.is,
-          v.allCases.options.thennable,
-          v.allCases.options.otherwise,
-          objectPath,
-          fullObject
-        )
-      ]
+          createPeekAlternative(
+            v.allCases.is,
+            v.allCases.options.thennable,
+            v.allCases.options.otherwise,
+            objectPath,
+            fullObject,
+            state,
+            convert
+          )
+        ]
       : [];
 
     const peeksAlternatives = [
@@ -306,7 +338,9 @@ const createPeeks = (options, originalObj) =>
           alternative.options.thennable,
           alternative.options.otherwise,
           objectPath,
-          fullObject
+          fullObject,
+          state,
+          convert
         )
       ),
       ...alt
@@ -315,21 +349,24 @@ const createPeeks = (options, originalObj) =>
     return acc.length === 0
       ? peeksAlternatives
       : peeksAlternatives.reduce(
-        (objs, alt) => objs.map(o => addObject(o, alt)),
-        acc
-      );
+          (objs, alt) => objs.map(o => merge(o, alt, state, convert)),
+          acc
+        );
   }, []);
 
 const makeAlternativesFromOptions = (optOf, newObj, state, convert) => {
-
-
-  const nonEmptyOptions = optOf.filter(opt => opt.options.length !== 0)
+  const nonEmptyOptions = optOf.filter(opt => opt.options.length !== 0);
   if (nonEmptyOptions.length === 0) {
-    return newObj
+    return newObj;
   } else {
-    const grouppedOptions = groupByOptions(nonEmptyOptions, newObj, state, convert);
+    const grouppedOptions = groupByOptions(
+      nonEmptyOptions,
+      newObj,
+      state,
+      convert
+    );
     return {
-      oneOf: createPeeks(grouppedOptions, newObj)
+      oneOf: createPeeks(grouppedOptions, newObj, state, convert)
         .map(p => {
           return makeOptions(p.peek, p.then, p.otherwise, state, convert);
         })
@@ -428,4 +465,4 @@ const groupByOptions = (opts, objChildren, state, convert) =>
     }, store);
   }, {});
 
-module.exports = { makeOptions, makeAlternativesFromOptions, addObject };
+module.exports = { makeOptions, makeAlternativesFromOptions };

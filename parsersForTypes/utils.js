@@ -32,4 +32,16 @@ const retrievePrintedReference = (joiReference, components) => {
   return undefined;
 };
 
-module.exports = { retrieveReference, retrievePrintedReference };
+const getBodyObjKey = condition => {
+  if ("oneOf" in condition) return { oneOf: condition.oneOf };
+  if (condition.type === "object") {
+    const { isRequired, ...rest } = condition;
+    return rest;
+  }
+
+  return {
+    type: condition.type
+  };
+};
+
+module.exports = { retrieveReference, retrievePrintedReference, getBodyObjKey };

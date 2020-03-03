@@ -61,6 +61,10 @@ const convertAux = (joiSchema, state) => {
     throw new TypeError("Passed schema does not appear to be a joi schema.");
 
   const type = joiSchema._type;
+  const newState = {
+    ...state,
+    isRoot: typeof state.isRoot === "undefined"
+  };
   const decorator = universalDecorator(joiSchema);
   let swaggerSchema;
   switch (type) {
@@ -77,14 +81,13 @@ const convertAux = (joiSchema, state) => {
       swaggerSchema = binaryParser(joiSchema);
       break;
     case "alternatives":
-      swaggerSchema = alternativesParser(joiSchema, state, convertAux);
+      swaggerSchema = alternativesParser(joiSchema, newState, convertAux);
       break;
     case "object":
-      const originalSchema = (state.parentObject || {}).originalSchema || joiSchema
-      swaggerSchema = objectParser(joiSchema, { ...state, parentObject: { originalSchema } }, convertAux);
+      swaggerSchema = objectParser(joiSchema, newState, convertAux);
       break;
     case "array":
-      swaggerSchema = arrayParser(joiSchema, state, convertAux);
+      swaggerSchema = arrayParser(joiSchema, newState, convertAux);
       break;
     case "date":
       swaggerSchema = dateParser(joiSchema);
@@ -93,10 +96,10 @@ const convertAux = (joiSchema, state) => {
       swaggerSchema = anyParser(joiSchema);
       break;
     case "options":
-      swaggerSchema = optionsParser(joiSchema, state, convertAux);
+      swaggerSchema = optionsParser(joiSchema, newState, convertAux);
       break;
     case "route":
-      swaggerSchema = routeParser(joiSchema, state, convertAux);
+      swaggerSchema = routeParser(joiSchema, newState, convertAux);
       break;
     case "reference": {
       swaggerSchema = refParser(joiSchema);
@@ -109,7 +112,7 @@ const convertAux = (joiSchema, state) => {
       break;
     }
     default:
-      swaggerSchema = extensionParser(joiSchema, state, convertAux);
+      swaggerSchema = extensionParser(joiSchema, newState, convertAux);
   }
 
   return swaggerSchema ? Object.assign(swaggerSchema, decorator) : undefined;

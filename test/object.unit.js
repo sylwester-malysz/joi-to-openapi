@@ -98,7 +98,7 @@ describe("Joi Object to OpenAPI", () => {
                 enum: ["in"]
               }
             },
-            required: ["duration"]
+            required: ["method", "duration"]
           },
           {
             type: "object",
@@ -259,7 +259,7 @@ describe("Joi Object to OpenAPI", () => {
                 type: "string"
               }
             },
-            required: ["action"]
+            required: ["user", "action"]
           },
           {
             type: "object",
@@ -413,11 +413,12 @@ describe("Joi Object to OpenAPI", () => {
                       { type: "string" },
                       { type: "number", format: "float" }
                     ]
-                  },
-                  required: ["struct"]
-                }
+                  }
+                },
+                required: ["struct"]
               }
-            }
+            },
+            required: ["someKey"]
           },
           {
             type: "object",
@@ -428,9 +429,9 @@ describe("Joi Object to OpenAPI", () => {
               embeed: {
                 type: "object",
                 properties: {
-                  struct: { type: "string" },
-                  required: ["struct"]
-                }
+                  struct: { type: "string" }
+                },
+                required: ["struct"]
               }
             }
           }
@@ -469,7 +470,8 @@ describe("Joi Object to OpenAPI", () => {
             type: "string"
           },
           embeed: {
-            type: "object"
+            type: "object",
+            properties: {}
           }
         }
       };
@@ -510,9 +512,9 @@ describe("Joi Object to OpenAPI", () => {
             properties: {
               struct: {
                 oneOf: [{ type: "string" }, { type: "number", format: "float" }]
-              },
-              required: ["struct"]
-            }
+              }
+            },
+            required: ["struct"]
           }
         }
       };
@@ -554,9 +556,9 @@ describe("Joi Object to OpenAPI", () => {
             properties: {
               struct: {
                 oneOf: [{ type: "string" }, { type: "number", format: "float" }]
-              },
-              required: ["struct"]
-            }
+              }
+            },
+            required: ["struct"]
           }
         }
       };
@@ -565,6 +567,85 @@ describe("Joi Object to OpenAPI", () => {
     it("should convert the object in the proper open-api", () => {
       const converted = convert(obj);
       expect(converted).deep.equal(expectedObjUpperScope);
+    });
+  });
+
+  describe("When .when is applied to a field which doesn't exist - nullable is propagated", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object({
+        someKey: Joi.string().allow(null),
+        sequence: Joi.string(),
+        embeed: Joi.object({
+          struct: Joi.when(Joi.ref("someKey"), {
+            is: Joi.exist(),
+            then: Joi.alternatives()
+              .try(Joi.string(), Joi.number())
+              .required(),
+            otherwise: Joi.optional()
+          })
+        }).required()
+      });
+
+      expectedObj = {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              someKey: {
+                type: "string",
+                nullable: true
+              },
+              sequence: {
+                type: "string"
+              },
+              embeed: {
+                type: "object",
+                properties: {
+                  struct: {
+                    oneOf: [
+                      { type: "string" },
+                      { type: "number", format: "float" }
+                    ]
+                  }
+                },
+                required: ["struct"]
+              }
+            },
+            required: ["someKey", "embeed"]
+          },
+          {
+            type: "object",
+            properties: {
+              sequence: {
+                type: "string"
+              },
+              embeed: {
+                type: "object",
+                properties: {
+                  struct: {
+                    oneOf: [
+                      { type: "array" },
+                      { type: "boolean" },
+                      { type: "number" },
+                      { type: "object" },
+                      { type: "string" }
+                    ]
+                  }
+                }
+              }
+            },
+            required: ["embeed"]
+          }
+        ]
+      };
+    });
+
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      expect(converted).deep.equal(expectedObj);
     });
   });
 });
