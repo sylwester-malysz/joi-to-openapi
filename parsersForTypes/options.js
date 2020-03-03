@@ -1,5 +1,9 @@
 const getOneOfSchemas = (matches, state, convert) => ({
-  oneOf: [...matches.map(allowedType => convert(allowedType, state))]
+  oneOf: [
+    ...matches.map(allowedType => {
+      return convert(allowedType, state);
+    })
+  ]
 });
 
 const parser = (joiSchema, state, convert) => {

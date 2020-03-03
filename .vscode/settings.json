@@ -10,5 +10,8 @@
     "terminal.integrated.shellArgs.osx": [
         "-l"
     ],
-    "javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false
+    "javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": true
+    }
 }
