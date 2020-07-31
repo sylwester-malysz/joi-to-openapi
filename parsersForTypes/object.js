@@ -9,7 +9,7 @@ const wrapConditionInObject = (condition, objKey) => {
   if (!objKey) return getBodyObjKey(condition);
   const properties = condition
     ? {
-        properties: { [objKey]: getBodyObjKey(condition) }
+        properties: { [objKey]: getBodyObjKey(condition) },
       }
     : undefined;
   const required =
@@ -17,17 +17,17 @@ const wrapConditionInObject = (condition, objKey) => {
   return {
     type: "object",
     ...properties,
-    ...required
+    ...required,
   };
 };
 
-const wrapOption = key => obj => {
-  const options = obj.options.map(option => {
+const wrapOption = (key) => (obj) => {
+  const options = obj.options.map((option) => {
     return {
       is: option.is,
       then: wrapConditionInObject(option.then, obj.key),
       otherwise: wrapConditionInObject(option.otherwise, obj.key),
-      ref: option.ref
+      ref: option.ref,
     };
   });
   return { key, options };
@@ -40,27 +40,29 @@ const getChild = (child, state, convert) => {
   let properties = {};
   for (const children of child) {
     let convertedChild = convert(children.schema, state);
-    if (convertedChild.optOf) {
-      properties.optOf = [
-        ...(properties.optOf || []),
-        { options: convertedChild.optOf, key: children.key }
-      ];
-    } else if (convertedChild.inheritedOptOf) {
-      const { inheritedOptOf, ...rest } = convertedChild;
-      properties[children.key] = rest;
-      properties = {
-        ...(properties || {}),
-        optOf: [
+    if (convertedChild) {
+      if (convertedChild.optOf) {
+        properties.optOf = [
           ...(properties.optOf || []),
-          ...inheritedOptOf.map(wrapOption(children.key))
-        ]
-      };
-    } else properties[children.key] = convertedChild;
+          { options: convertedChild.optOf, key: children.key },
+        ];
+      } else if (convertedChild.inheritedOptOf) {
+        const { inheritedOptOf, ...rest } = convertedChild;
+        properties[children.key] = rest;
+        properties = {
+          ...(properties || {}),
+          optOf: [
+            ...(properties.optOf || []),
+            ...inheritedOptOf.map(wrapOption(children.key)),
+          ],
+        };
+      } else properties[children.key] = convertedChild;
+    }
   }
   return { properties };
 };
 
-const getRequiredFields = child => {
+const getRequiredFields = (child) => {
   if (!child) {
     return null;
   }
@@ -73,7 +75,7 @@ const getRequiredFields = child => {
   return required.length ? { required } : null;
 };
 
-const findObjectInScope = object => option =>
+const findObjectInScope = (object) => (option) =>
   option.ref.split(".").reduce((obj, key) => {
     if (obj && obj.properties) {
       return obj.properties[key];
@@ -81,19 +83,19 @@ const findObjectInScope = object => option =>
     return obj;
   }, deepcopy(object));
 
-const aggregateScopedPartitions = scope => ([left, right], obj) => {
+const aggregateScopedPartitions = (scope) => ([left, right], obj) => {
   const [inScope, notInScope] = _.partition(
     obj.options,
     findObjectInScope(scope)
   );
   return [
     [...left, { ...obj, options: inScope }],
-    [...right, { ...obj, options: notInScope }]
+    [...right, { ...obj, options: notInScope }],
   ];
 };
 
 function needsOptOfPropagation(optList) {
-  return optList.length > 0 && optList.some(opt => opt.options.length > 0);
+  return optList.length > 0 && optList.some((opt) => opt.options.length > 0);
 }
 
 const parser = (joiSchema, state, convert) => {
@@ -125,7 +127,7 @@ const parser = (joiSchema, state, convert) => {
               acc,
               {
                 type: "object",
-                properties: { [opt.key]: rest }
+                properties: { [opt.key]: rest },
               },
               state,
               convert

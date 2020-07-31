@@ -29,9 +29,9 @@ describe("Joi Alternatives to OpenAPI", () => {
             status: Joi.string().valid(["on", "off", "pause"]),
             stream_direction: Joi.string()
               .valid(["in", "out"])
-              .required()
+              .required(),
           })
-          .required()
+          .required(),
       }).when(
         Joi.object({
           body: Joi.object({
@@ -40,20 +40,20 @@ describe("Joi Alternatives to OpenAPI", () => {
               .required(),
             status: Joi.string()
               .valid(["pause"])
-              .required()
+              .required(),
           })
             .required()
-            .unknown()
+            .unknown(),
         }).unknown(),
         {
           then: Joi.object({
             identifier: Joi.string().optional(),
-            device_id: Joi.string().optional()
+            device_id: Joi.string().optional(),
           }),
           otherwise: Joi.object({
             identifier: Joi.string().required(),
-            device_id: Joi.string().required()
-          })
+            device_id: Joi.string().required(),
+          }),
         }
       );
 
@@ -63,99 +63,99 @@ describe("Joi Alternatives to OpenAPI", () => {
             type: "object",
             properties: {
               from: {
-                type: "string"
+                type: "string",
               },
               timestamp: {
-                type: "string"
+                type: "string",
               },
               body: {
                 type: "object",
                 properties: {
                   status: {
                     type: "string",
-                    enum: ["pause"]
+                    enum: ["pause"],
                   },
                   stream_direction: {
                     type: "string",
-                    enum: ["in"]
-                  }
+                    enum: ["in"],
+                  },
                 },
-                required: ["stream_direction", "status"]
+                required: ["stream_direction", "status"],
               },
               identifier: {
-                type: "string"
+                type: "string",
               },
               device_id: {
-                type: "string"
-              }
+                type: "string",
+              },
             },
-            required: ["from", "timestamp", "body"]
+            required: ["from", "timestamp", "body"],
           },
           {
             type: "object",
             properties: {
               from: {
-                type: "string"
+                type: "string",
               },
               timestamp: {
-                type: "string"
+                type: "string",
               },
               body: {
                 type: "object",
                 properties: {
                   status: {
                     type: "string",
-                    enum: ["on", "off", "pause"]
+                    enum: ["on", "off", "pause"],
                   },
                   stream_direction: {
                     type: "string",
-                    enum: ["out"]
-                  }
+                    enum: ["out"],
+                  },
                 },
-                required: ["stream_direction"]
+                required: ["stream_direction"],
               },
               identifier: {
-                type: "string"
+                type: "string",
               },
               device_id: {
-                type: "string"
-              }
+                type: "string",
+              },
             },
-            required: ["from", "timestamp", "body", "identifier", "device_id"]
+            required: ["from", "timestamp", "body", "identifier", "device_id"],
           },
           {
             type: "object",
             properties: {
               from: {
-                type: "string"
+                type: "string",
               },
               timestamp: {
-                type: "string"
+                type: "string",
               },
               body: {
                 type: "object",
                 properties: {
                   status: {
                     type: "string",
-                    enum: ["on", "off"]
+                    enum: ["on", "off"],
                   },
                   stream_direction: {
                     type: "string",
-                    enum: ["in"]
-                  }
+                    enum: ["in"],
+                  },
                 },
-                required: ["stream_direction"]
+                required: ["stream_direction"],
               },
               identifier: {
-                type: "string"
+                type: "string",
               },
               device_id: {
-                type: "string"
-              }
+                type: "string",
+              },
             },
-            required: ["from", "timestamp", "body", "identifier", "device_id"]
-          }
-        ]
+            required: ["from", "timestamp", "body", "identifier", "device_id"],
+          },
+        ],
       };
     });
 
@@ -178,9 +178,9 @@ describe("Joi Alternatives to OpenAPI", () => {
             then: Joi.alternatives()
               .try(Joi.string(), Joi.number())
               .required(),
-            otherwise: Joi.forbidden()
-          })
-        }).required()
+            otherwise: Joi.forbidden(),
+          }),
+        }).required(),
       });
 
       obj = Joi.object({
@@ -192,10 +192,10 @@ describe("Joi Alternatives to OpenAPI", () => {
               deleted: Joi.string()
                 .isoDate()
                 .description("Date in ISO format")
-                .required()
-            })
+                .required(),
+            }),
           })
-        )
+        ),
       });
 
       expectedObj = {
@@ -205,7 +205,7 @@ describe("Joi Alternatives to OpenAPI", () => {
             properties: {
               someKey: {
                 type: "string",
-                nullable: true
+                nullable: true,
               },
               body: {
                 oneOf: [
@@ -218,18 +218,18 @@ describe("Joi Alternatives to OpenAPI", () => {
                           deleted: {
                             type: "string",
                             format: "date-time",
-                            description: "Date in ISO format"
-                          }
+                            description: "Date in ISO format",
+                          },
                         },
-                        required: ["deleted"]
-                      }
-                    }
+                        required: ["deleted"],
+                      },
+                    },
                   },
                   {
                     type: "object",
                     properties: {
                       sequence: {
-                        type: "string"
+                        type: "string",
                       },
                       embeed: {
                         type: "object",
@@ -237,19 +237,19 @@ describe("Joi Alternatives to OpenAPI", () => {
                           struct: {
                             oneOf: [
                               { type: "string" },
-                              { type: "number", format: "float" }
-                            ]
-                          }
+                              { type: "number", format: "float" },
+                            ],
+                          },
                         },
-                        required: ["struct"]
-                      }
+                        required: ["struct"],
+                      },
                     },
-                    required: ["embeed"]
-                  }
-                ]
-              }
+                    required: ["embeed"],
+                  },
+                ],
+              },
             },
-            required: ["someKey"]
+            required: ["someKey"],
           },
           {
             type: "object",
@@ -265,31 +265,31 @@ describe("Joi Alternatives to OpenAPI", () => {
                           deleted: {
                             type: "string",
                             format: "date-time",
-                            description: "Date in ISO format"
-                          }
+                            description: "Date in ISO format",
+                          },
                         },
-                        required: ["deleted"]
-                      }
-                    }
+                        required: ["deleted"],
+                      },
+                    },
                   },
                   {
                     type: "object",
                     properties: {
                       sequence: {
-                        type: "string"
+                        type: "string",
                       },
                       embeed: {
                         type: "object",
-                        properties: {}
-                      }
+                        properties: {},
+                      },
                     },
-                    required: ["embeed"]
-                  }
-                ]
-              }
-            }
-          }
-        ]
+                    required: ["embeed"],
+                  },
+                ],
+              },
+            },
+          },
+        ],
       };
     });
 

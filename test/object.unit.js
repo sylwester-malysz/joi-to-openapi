@@ -10,6 +10,7 @@ chai.use(chaiAsPromised);
 chai.use(sinonChai);
 
 const Joi = require("@hapi/joi");
+const joiToOpenapi = require("../index");
 
 describe("Joi Object to OpenAPI", () => {
   beforeEach(() => {});
@@ -22,19 +23,19 @@ describe("Joi Object to OpenAPI", () => {
       obj = Joi.object()
         .keys({
           code: Joi.string(),
-          text: Joi.string()
+          text: Joi.string(),
         })
         .and("code", "text");
       expectedObj = {
         type: "object",
         properties: {
           code: {
-            type: "string"
+            type: "string",
           },
           text: {
-            type: "string"
-          }
-        }
+            type: "string",
+          },
+        },
       };
     });
 
@@ -61,11 +62,11 @@ describe("Joi Object to OpenAPI", () => {
           then: Joi.number()
             .integer()
             .required(),
-          otherwise: Joi.forbidden()
+          otherwise: Joi.forbidden(),
         }),
         method: Joi.string()
           .valid("in")
-          .optional()
+          .optional(),
       });
       expectedObj = {
         oneOf: [
@@ -74,56 +75,56 @@ describe("Joi Object to OpenAPI", () => {
             properties: {
               digit: {
                 type: "string",
-                pattern: "^([abcdABCD0-9*#pP])+$"
+                pattern: "^([abcdABCD0-9*#pP])+$",
               },
               date: {
                 oneOf: [
                   {
                     type: "string",
-                    nullable: true
+                    nullable: true,
                   },
                   {
-                    type: "object"
-                  }
-                ]
+                    type: "object",
+                  },
+                ],
               },
               sequence: {
-                type: "integer"
+                type: "integer",
               },
               duration: {
-                type: "integer"
+                type: "integer",
               },
               method: {
                 type: "string",
-                enum: ["in"]
-              }
+                enum: ["in"],
+              },
             },
-            required: ["method", "duration"]
+            required: ["method", "duration"],
           },
           {
             type: "object",
             properties: {
               digit: {
                 type: "string",
-                pattern: "^([abcdABCD0-9*#pP])+$"
+                pattern: "^([abcdABCD0-9*#pP])+$",
               },
               date: {
                 oneOf: [
                   {
                     type: "string",
-                    nullable: true
+                    nullable: true,
                   },
                   {
-                    type: "object"
-                  }
-                ]
+                    type: "object",
+                  },
+                ],
               },
               sequence: {
-                type: "integer"
-              }
-            }
-          }
-        ]
+                type: "integer",
+              },
+            },
+          },
+        ],
       };
     });
 
@@ -140,21 +141,21 @@ describe("Joi Object to OpenAPI", () => {
         body: Joi.object().keys({
           stream: Joi.string()
             .valid(["inbound", "outbound"])
-            .required()
+            .required(),
         }),
         sender: Joi.when(Joi.ref("body.stream"), {
           is: "outbound",
           then: Joi.string(),
-          otherwise: Joi.any().forbidden()
+          otherwise: Joi.any().forbidden(),
         }),
         receiver: Joi.when(Joi.ref("body.stream"), {
           is: "outbound",
           then: Joi.string().required(),
-          otherwise: Joi.any().forbidden()
+          otherwise: Joi.any().forbidden(),
         }),
         timestamp: Joi.string()
           .allow("")
-          .required()
+          .required(),
       });
       expectedObj = {
         oneOf: [
@@ -166,22 +167,22 @@ describe("Joi Object to OpenAPI", () => {
                 properties: {
                   stream: {
                     type: "string",
-                    enum: ["outbound"]
-                  }
+                    enum: ["outbound"],
+                  },
                 },
-                required: ["stream"]
+                required: ["stream"],
               },
               sender: {
-                type: "string"
+                type: "string",
               },
               receiver: {
-                type: "string"
+                type: "string",
               },
               timestamp: {
-                type: "string"
-              }
+                type: "string",
+              },
             },
-            required: ["timestamp", "receiver"]
+            required: ["timestamp", "receiver"],
           },
           {
             type: "object",
@@ -191,18 +192,18 @@ describe("Joi Object to OpenAPI", () => {
                 properties: {
                   stream: {
                     type: "string",
-                    enum: ["inbound"]
-                  }
+                    enum: ["inbound"],
+                  },
                 },
-                required: ["stream"]
+                required: ["stream"],
               },
               timestamp: {
-                type: "string"
-              }
+                type: "string",
+              },
             },
-            required: ["timestamp"]
-          }
-        ]
+            required: ["timestamp"],
+          },
+        ],
       };
     });
 
@@ -226,12 +227,12 @@ describe("Joi Object to OpenAPI", () => {
           channel: Joi.string().when("user", {
             is: Joi.exist(),
             then: Joi.optional(),
-            otherwise: Joi.required()
+            otherwise: Joi.required(),
           }),
           action: Joi.string()
             .valid(["create", "delete"])
             .required(),
-          user: Joi.string().optional()
+          user: Joi.string().optional(),
         })
         .or("user_id", "user_name")
         .unknown();
@@ -242,47 +243,47 @@ describe("Joi Object to OpenAPI", () => {
             properties: {
               identifier: {
                 type: "string",
-                nullable: true
+                nullable: true,
               },
               name: {
                 type: "string",
-                nullable: true
+                nullable: true,
               },
               channel: {
-                type: "string"
+                type: "string",
               },
               action: {
                 type: "string",
-                enum: ["create", "delete"]
+                enum: ["create", "delete"],
               },
               user: {
-                type: "string"
-              }
+                type: "string",
+              },
             },
-            required: ["user", "action"]
+            required: ["user", "action"],
           },
           {
             type: "object",
             properties: {
               identifier: {
                 type: "string",
-                nullable: true
+                nullable: true,
               },
               name: {
                 type: "string",
-                nullable: true
+                nullable: true,
               },
               channel: {
-                type: "string"
+                type: "string",
               },
               action: {
                 type: "string",
-                enum: ["create", "delete"]
-              }
+                enum: ["create", "delete"],
+              },
             },
-            required: ["action", "channel"]
-          }
-        ]
+            required: ["action", "channel"],
+          },
+        ],
       };
     });
 
@@ -306,14 +307,14 @@ describe("Joi Object to OpenAPI", () => {
           channel: Joi.string().when("transition", {
             is: "up",
             then: Joi.forbidden(),
-            otherwise: Joi.required()
+            otherwise: Joi.required(),
           }),
           action: Joi.string()
             .valid(["create", "delete"])
             .required(),
           transition: Joi.string()
             .valid(["up", "down"])
-            .required()
+            .required(),
         })
         .or("user_id", "user_name")
         .unknown();
@@ -324,49 +325,49 @@ describe("Joi Object to OpenAPI", () => {
             properties: {
               identifier: {
                 type: "string",
-                nullable: true
+                nullable: true,
               },
               name: {
                 type: "string",
-                nullable: true
+                nullable: true,
               },
               action: {
                 type: "string",
-                enum: ["create", "delete"]
+                enum: ["create", "delete"],
               },
               transition: {
                 type: "string",
-                enum: ["up"]
-              }
+                enum: ["up"],
+              },
             },
-            required: ["action", "transition"]
+            required: ["action", "transition"],
           },
           {
             type: "object",
             properties: {
               identifier: {
                 type: "string",
-                nullable: true
+                nullable: true,
               },
               name: {
                 type: "string",
-                nullable: true
+                nullable: true,
               },
               channel: {
-                type: "string"
+                type: "string",
               },
               action: {
                 type: "string",
-                enum: ["create", "delete"]
+                enum: ["create", "delete"],
               },
               transition: {
                 type: "string",
-                enum: ["down"]
-              }
+                enum: ["down"],
+              },
             },
-            required: ["action", "transition", "channel"]
-          }
-        ]
+            required: ["action", "transition", "channel"],
+          },
+        ],
       };
     });
 
@@ -388,9 +389,9 @@ describe("Joi Object to OpenAPI", () => {
             then: Joi.alternatives()
               .try(Joi.string(), Joi.number())
               .required(),
-            otherwise: Joi.string().required()
-          })
-        })
+            otherwise: Joi.string().required(),
+          }),
+        }),
       });
 
       expectedObjUpperScope = {
@@ -400,10 +401,10 @@ describe("Joi Object to OpenAPI", () => {
             properties: {
               someKey: {
                 type: "string",
-                nullable: true
+                nullable: true,
               },
               sequence: {
-                type: "string"
+                type: "string",
               },
               embeed: {
                 type: "object",
@@ -411,31 +412,134 @@ describe("Joi Object to OpenAPI", () => {
                   struct: {
                     oneOf: [
                       { type: "string" },
-                      { type: "number", format: "float" }
-                    ]
-                  }
+                      { type: "number", format: "float" },
+                    ],
+                  },
                 },
-                required: ["struct"]
-              }
+                required: ["struct"],
+              },
             },
-            required: ["someKey"]
+            required: ["someKey"],
           },
           {
             type: "object",
             properties: {
               sequence: {
-                type: "string"
+                type: "string",
               },
               embeed: {
                 type: "object",
                 properties: {
-                  struct: { type: "string" }
+                  struct: { type: "string" },
                 },
-                required: ["struct"]
-              }
-            }
-          }
-        ]
+                required: ["struct"],
+              },
+            },
+          },
+        ],
+      };
+    });
+
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      expect(converted).deep.equal(expectedObjUpperScope);
+    });
+  });
+
+  // TODO - apply proper diff (in nested objects) when JOI object in .when is used
+  describe("When .when is applied to an object", () => {
+    let obj;
+    let expectedObjUpperScope;
+
+    beforeEach(() => {
+      obj = Joi.object({
+        someObject: Joi.object()
+          .keys({
+            name: Joi.string(),
+            fame: Joi.string().valid(["famous", "vip"]),
+          })
+          .required(),
+        status: Joi.string()
+          .valid(["available", "busy"])
+          .insensitive()
+          .required(),
+      }).when(
+        Joi.object()
+          .keys({
+            status: Joi.string()
+              .valid(["busy"])
+              .required(),
+          })
+          .unknown(),
+        {
+          otherwise: Joi.object().keys({
+            reason: Joi.any().forbidden(),
+          }),
+          then: Joi.object().keys({
+            reason: Joi.object()
+              .keys({
+                txt: Joi.string(),
+              })
+              .required(),
+          }),
+        }
+      );
+
+      expectedObjUpperScope = {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              someObject: {
+                type: "object",
+                properties: {
+                  name: {
+                    type: "string",
+                  },
+                  fame: {
+                    type: "string",
+                    enum: ["famous", "vip"],
+                  },
+                },
+              },
+              status: {
+                type: "string",
+                enum: ["busy"],
+              },
+              reason: {
+                type: "object",
+                properties: {
+                  txt: {
+                    type: "string",
+                  },
+                },
+              },
+            },
+            required: ["someObject", "status", "reason"],
+          },
+          {
+            type: "object",
+            properties: {
+              someObject: {
+                type: "object",
+                properties: {
+                  name: {
+                    type: "string",
+                  },
+                  fame: {
+                    type: "string",
+                    enum: ["famous", "vip"],
+                  },
+                },
+              },
+              status: {
+                type: "string",
+                enum: ["available"],
+              },
+            },
+            required: ["someObject", "status"],
+          },
+        ],
       };
     });
 
@@ -458,22 +562,22 @@ describe("Joi Object to OpenAPI", () => {
             then: Joi.alternatives()
               .try(Joi.string(), Joi.number())
               .required(),
-            otherwise: Joi.forbidden()
-          })
-        })
+            otherwise: Joi.forbidden(),
+          }),
+        }),
       });
 
       expectedObjUpperScope = {
         type: "object",
         properties: {
           sequence: {
-            type: "string"
+            type: "string",
           },
           embeed: {
             type: "object",
-            properties: {}
-          }
-        }
+            properties: {},
+          },
+        },
       };
     });
 
@@ -496,27 +600,30 @@ describe("Joi Object to OpenAPI", () => {
             then: Joi.alternatives()
               .try(Joi.string(), Joi.number())
               .required(),
-            otherwise: Joi.forbidden()
-          })
-        })
+            otherwise: Joi.forbidden(),
+          }),
+        }),
       });
 
       expectedObjUpperScope = {
         type: "object",
         properties: {
           sequence: {
-            type: "string"
+            type: "string",
           },
           embeed: {
             type: "object",
             properties: {
               struct: {
-                oneOf: [{ type: "string" }, { type: "number", format: "float" }]
-              }
+                oneOf: [
+                  { type: "string" },
+                  { type: "number", format: "float" },
+                ],
+              },
             },
-            required: ["struct"]
-          }
-        }
+            required: ["struct"],
+          },
+        },
       };
     });
 
@@ -539,9 +646,9 @@ describe("Joi Object to OpenAPI", () => {
             then: Joi.alternatives()
               .try(Joi.string(), Joi.number())
               .required(),
-            otherwise: Joi.forbidden()
-          })
-        })
+            otherwise: Joi.forbidden(),
+          }),
+        }),
       });
 
       expectedObjUpperScope = {
@@ -549,18 +656,21 @@ describe("Joi Object to OpenAPI", () => {
         properties: {
           sequence: {
             type: "string",
-            nullable: true
+            nullable: true,
           },
           embeed: {
             type: "object",
             properties: {
               struct: {
-                oneOf: [{ type: "string" }, { type: "number", format: "float" }]
-              }
+                oneOf: [
+                  { type: "string" },
+                  { type: "number", format: "float" },
+                ],
+              },
             },
-            required: ["struct"]
-          }
-        }
+            required: ["struct"],
+          },
+        },
       };
     });
 
@@ -584,9 +694,9 @@ describe("Joi Object to OpenAPI", () => {
             then: Joi.alternatives()
               .try(Joi.string(), Joi.number())
               .required(),
-            otherwise: Joi.optional()
-          })
-        }).required()
+            otherwise: Joi.optional(),
+          }),
+        }).required(),
       });
 
       expectedObj = {
@@ -596,10 +706,10 @@ describe("Joi Object to OpenAPI", () => {
             properties: {
               someKey: {
                 type: "string",
-                nullable: true
+                nullable: true,
               },
               sequence: {
-                type: "string"
+                type: "string",
               },
               embeed: {
                 type: "object",
@@ -607,20 +717,20 @@ describe("Joi Object to OpenAPI", () => {
                   struct: {
                     oneOf: [
                       { type: "string" },
-                      { type: "number", format: "float" }
-                    ]
-                  }
+                      { type: "number", format: "float" },
+                    ],
+                  },
                 },
-                required: ["struct"]
-              }
+                required: ["struct"],
+              },
             },
-            required: ["someKey", "embeed"]
+            required: ["someKey", "embeed"],
           },
           {
             type: "object",
             properties: {
               sequence: {
-                type: "string"
+                type: "string",
               },
               embeed: {
                 type: "object",
@@ -631,15 +741,15 @@ describe("Joi Object to OpenAPI", () => {
                       { type: "boolean" },
                       { type: "number" },
                       { type: "object" },
-                      { type: "string" }
-                    ]
-                  }
-                }
-              }
+                      { type: "string" },
+                    ],
+                  },
+                },
+              },
             },
-            required: ["embeed"]
-          }
-        ]
+            required: ["embeed"],
+          },
+        ],
       };
     });
 
