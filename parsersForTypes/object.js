@@ -1,4 +1,7 @@
-const { makeAlternativesFromOptions } = require("./alternatives_utils");
+const {
+  makeAlternativesFromOptions,
+  buildAlt,
+} = require("./alternatives_utils");
 const { merge } = require("./merge_utils");
 const { getBodyObjKey } = require("./utils");
 const _ = require("lodash");
@@ -75,13 +78,16 @@ const getRequiredFields = (child) => {
   return required.length ? { required } : null;
 };
 
-const findObjectInScope = (object) => (option) =>
-  option.ref.split(".").reduce((obj, key) => {
+const findObjectInScope = (object) => (option) => {
+  const scopeObj = option.ref.split(".").reduce((obj, key) => {
     if (obj && obj.properties) {
       return obj.properties[key];
     }
     return obj;
   }, deepcopy(object));
+
+  return scopeObj;
+};
 
 const aggregateScopedPartitions = (scope) => ([left, right], obj) => {
   const [inScope, notInScope] = _.partition(
@@ -98,27 +104,23 @@ function needsOptOfPropagation(optList) {
   return optList.length > 0 && optList.some((opt) => opt.options.length > 0);
 }
 
-const mapWhens = (whens) =>
-  whens.map(({ is, otherwise, then }) => ({ is, otherwise, then }));
-
 const parser = (joiSchema, state, convert) => {
   const child = getChild(joiSchema.$_terms.keys, state, convert);
   const requiredFields = getRequiredFields(joiSchema.$_terms.keys);
-  const obj = Object.assign({ type: "object" }, child, requiredFields);
+  let obj = Object.assign({ type: "object" }, child, requiredFields);
 
-  const optOf = [
-    ...mapWhens(joiSchema.$_terms.whens || []),
-    ...((obj.properties && obj.properties.optOf) || []),
-  ];
+  if (joiSchema.$_terms.whens) {
+    const v = joiSchema.$_terms.whens[0];
+    obj = buildAlt(obj, v.is, v.then, v.otherwise, state, convert);
+  }
 
-  if (optOf.length > 0) {
-    const { optOf: _, ...rest } = obj.properties;
+  if (obj.properties && obj.properties.optOf) {
+    const { optOf, ...rest } = obj.properties;
     const newObj = { ...obj, properties: rest };
     const [currentScopeOpt, notInScopeOpt] = optOf.reduce(
       aggregateScopedPartitions(newObj),
       [[], []]
     );
-
     const optionObject = makeAlternativesFromOptions(
       currentScopeOpt,
       newObj,
@@ -151,6 +153,7 @@ const parser = (joiSchema, state, convert) => {
 
     return optionObject;
   }
+
   return obj;
 };
 

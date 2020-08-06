@@ -12,6 +12,7 @@ const refParser = require("./parsersForTypes/reference");
 const extensionParser = require("./parsersForTypes/extension");
 const optionsParser = require("./parsersForTypes/options");
 const anyParser = require("./parsersForTypes/any");
+const { values } = require("./parsersForTypes/utils");
 
 const isJoi = (obj) => obj.$_root && obj.$_root.isSchema(obj);
 
@@ -22,14 +23,9 @@ const universalDecorator = (joiSchema) => {
     universalParams.nullable = true;
   }
 
-  if (joiSchema._valids && joiSchema._valids._values.size) {
-    const validValues = Array.from(joiSchema._valids._values);
-    const notEmptyValues = validValues.filter(
-      (value) => value !== null && value !== ""
-    );
-    if (notEmptyValues.length) {
-      universalParams.enum = notEmptyValues;
-    }
+  const notEmptyValues = values(joiSchema);
+  if (notEmptyValues.length) {
+    universalParams.enum = notEmptyValues;
   }
 
   if (joiSchema._flags.description) {
@@ -68,6 +64,7 @@ const convertAux = (joiSchema, state) => {
   const newState = {
     ...state,
     isRoot: typeof state.isRoot === "undefined",
+    originalSchema: state.originalSchema || joiSchema,
   };
   const decorator = universalDecorator(joiSchema);
   let swaggerSchema;
@@ -76,7 +73,7 @@ const convertAux = (joiSchema, state) => {
       swaggerSchema = numberParser(joiSchema);
       break;
     case "string":
-      swaggerSchema = stringParser(joiSchema);
+      swaggerSchema = stringParser(joiSchema, newState, convertAux);
       break;
     case "boolean":
       swaggerSchema = booleanParser(joiSchema);
@@ -99,7 +96,7 @@ const convertAux = (joiSchema, state) => {
     case "any":
       swaggerSchema = anyParser(joiSchema, newState, convertAux);
       break;
-    case "options":
+    case "opt":
       swaggerSchema = optionsParser(joiSchema, newState, convertAux);
       break;
     case "route":

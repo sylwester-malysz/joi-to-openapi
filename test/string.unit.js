@@ -263,7 +263,7 @@ describe("Joi String to OpenAPI", () => {
       obj = Joi.string().pattern(/^[abc]+$/);
       expectedObj = {
         type: "string",
-        pattern: /^[abc]+$/,
+        pattern: "^[abc]+$",
       };
     });
 

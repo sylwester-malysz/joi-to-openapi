@@ -1,3 +1,5 @@
+const { options } = require("./utils");
+
 /* eslint-disable no-underscore-dangle */
 const find = require("lodash.find");
 
@@ -33,10 +35,28 @@ const getMaxLength = (tests) => {
 
 const getPattern = (tests) => {
   const p = find(tests, { name: "pattern" });
-  return p ? { pattern: p.args.regex } : null;
+  return p ? { pattern: p.args.regex.source } : null;
 };
 
-const parser = (joiSchema) => {
+const mkString = (cond, values) => {
+  let c;
+  if (cond) {
+    if (cond.type != "any" && cond.type != "string")
+      throw Error("cannot build alternative different of string or any");
+    if (cond._flags.presence === "forbidden") return undefined;
+    c = { type: "string" };
+    if (values.length > 0) {
+      c.enum = values;
+    }
+    if (c) c.isRequired = cond._flags.presence === "required";
+  }
+  return c;
+};
+
+const parser = (joiSchema, state, convert) => {
+  if (joiSchema.$_terms.whens) {
+    return options(joiSchema, state, convert, mkString);
+  }
   const rules = joiSchema._rules;
   const format = getFormat(rules);
   const maxLength = getMaxLength(rules);

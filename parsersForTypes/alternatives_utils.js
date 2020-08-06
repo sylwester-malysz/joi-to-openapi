@@ -52,9 +52,8 @@ const addKeysAsRequired = (keys, obj) => {
 
 const makeOptions = (peek, then, otherwise, state, convert) => {
   const [falsyOptions, falsePaths] = singleFieldObject(peek);
-
   const negativeOptions = falsyOptions.map((o) =>
-    makeDiff(deepcopy(otherwise), o, state, convert)
+    diff(deepcopy(otherwise), o, state, convert)
   );
   const positionOption = mergeDiff(then, peek);
   const [missingKey = [], ...keys] = negativeOptions.reduce((acc, obj) => {
@@ -112,7 +111,6 @@ const extractObjFromPath = (path, obj, store, state) => {
   if (!obj || (!obj[key] && !obj.properties && !obj.properties[key])) return {};
 
   const nest = store[key] || {};
-
   if (obj.type === "object") {
     return {
       [key]: {
@@ -160,79 +158,76 @@ const cleanFromOverlapping = (obj1, obj2, state, convert) => {
   return diff(obj1, obj2, state, convert, supportFn);
 };
 
-const makeDiff = (obj1, obj2, state, convert) => {
-  const supportFn = {
-    string: (obj1, obj2) => {
-      if (!obj1.enum && !obj2.enum) return [undefined, false];
-      if (!obj1.enum) {
-        const oldEnum = obj1.not ? obj1.not.enum || [] : [];
-        return [{ ...obj1, not: { enum: [...oldEnum, ...obj2.enum] } }, false];
-      }
-      const remainingItems = obj1.enum.diff(obj2.enum || []);
-      if (remainingItems.length == 0) {
-        return [undefined, false];
-      }
-      return [{ ...obj1, enum: remainingItems }, false];
-    },
-  };
-  const [dObj, _] = diff(obj1, obj2, state, convert, supportFn);
-  return dObj;
+const diff = (obj1, obj2, state, convert) => {
+  const { type } = obj1;
+  if (type === "object") return diffObject(obj1, obj2, state, convert);
+  if (obj2.$ref || obj1.$ref) return diffReference(obj1, obj2, state, convert);
+  if (type === "string") return stringDiff(obj1, obj2, state, convert);
+
+  return obj1;
 };
 
-const diffObject = (obj1, obj2, state, convert, supportFn) => {
-  return Object.entries(obj2).reduce(
-    ([acc, keep], [k, v]) => {
-      const propertyKey = acc.properties[k];
+const diffReference = (r1, r2, state, convert) => {
+  const fn = (obj) =>
+    convert(retrievePrintedReference(obj, state.components), state);
+  return diff(r1.$ref ? fn(r1) : r1, r2.$ref ? fn(r2) : r2, state, convert);
+};
+
+const diffObject = (obj1, obj2, state, convert) => {
+  const [properties, required] = Object.entries(obj2.properties).reduce(
+    ([acc, req], [k, v]) => {
+      const propertyKey = acc[k];
       if (propertyKey) {
-        const [child, noTotallyRemoved] = diff(
-          propertyKey,
-          v,
-          state,
-          convert,
-          supportFn
-        );
-        delete acc.properties[k];
+        const child = diff(propertyKey, v, state, convert);
+        const _req = req && !child ? req.diff([k]) : req;
+        delete acc[k];
         return child
           ? [
               {
                 ...acc,
-                properties: {
-                  ...acc.properties,
-                  [k]: child,
-                },
+                [k]: child,
               },
-              keep && noTotallyRemoved,
+              req,
             ]
-          : [acc, keep];
+          : [acc, _req];
       }
 
-      return [acc, keep];
+      return [acc, req];
     },
-    [obj1, true]
+    [obj1.properties, obj1.required]
   );
+  return JSON.parse(JSON.stringify({ ...obj1, properties, required }));
 };
 
-const diffReference = (r1, r2, state, convert, supportFn) => {
-  const fn = (obj) =>
-    convert(retrievePrintedReference(obj, state.components), state);
-  return diff(
-    r1.$ref ? fn(r1) : r1,
-    r2.$ref ? fn(r2) : r2,
-    state,
-    convert,
-    supportFn
-  );
+const stringDiff = (obj1, obj2) => {
+  if (!obj1.enum && !obj2.enum) return undefined;
+  if (!obj1.enum) {
+    const oldEnum = obj1.not ? obj1.not.enum || [] : [];
+    return { ...obj1, not: { enum: [...oldEnum, ...obj2.enum] } };
+  }
+  const remainingItems = obj1.enum.diff(obj2.enum || []);
+  if (remainingItems.length == 0) {
+    return undefined;
+  }
+  return { ...obj1, enum: remainingItems };
 };
 
-const diff = (obj1, obj2, state, convert, supportFn) => {
-  const { type } = obj1;
-  if (type === "object")
-    return diffObject(obj1, obj2, state, convert, supportFn);
-  if (obj2.$ref || obj1.$ref)
-    return diffReference(obj1, obj2, state, convert, supportFn);
-  if (type && supportFn[type]) return supportFn[type](obj1, obj2);
+const flatTuples = (listTuple) => {
+  return listTuple.reduce((acc, [x, y]) => [...acc, x, y], []);
+};
 
-  return [obj1, true];
+const buildAlt = (obj, is, then, otherwise, state, convert) => {
+  const _is = convert(is, state);
+  const _then = convert(then, state);
+  const _otherwise = convert(otherwise, state);
+  let alternatives = obj.oneOf || [obj];
+  alternatives = alternatives.map((obj) => [
+    merge(mergeDiff(deepcopy(obj), _is), _then, state, convert),
+    merge(diff(deepcopy(obj), _is, state, convert), _otherwise, state, convert),
+  ]);
+  return {
+    oneOf: flatTuples(alternatives),
+  };
 };
 
 const singleFieldObject = (_obj) => {
@@ -242,7 +237,10 @@ const singleFieldObject = (_obj) => {
       ([objs, paths], [k, v]) => {
         const [os, ps] = singleFieldObject(v);
         return [
-          [...objs, ...os.map((o) => ({ [k]: o }))],
+          [
+            ...objs,
+            ...os.map((o) => ({ type: "object", properties: { [k]: o } })),
+          ],
           [...paths, ...ps.map((p) => `${k}${p ? "." : ""}${p}`)],
         ];
       },
@@ -467,4 +465,4 @@ const groupByOptions = (opts, objChildren, state, convert) =>
     }, store);
   }, {});
 
-module.exports = { makeOptions, makeAlternativesFromOptions };
+module.exports = { makeOptions, makeAlternativesFromOptions, buildAlt };
