@@ -1,4 +1,4 @@
-const joi = require("@hapi/joi");
+const joi = require("joi");
 const { retrieveReference } = require("./utils");
 
 const initIfUndefined = (obj, key, defaultValue) => {
@@ -6,7 +6,7 @@ const initIfUndefined = (obj, key, defaultValue) => {
   return obj[key];
 };
 
-const isRequired = obj => {
+const isRequired = (obj) => {
   return obj._flags.presence === "required" ? true : undefined;
 };
 
@@ -20,14 +20,14 @@ const makeOpenApiParam = (item, state = {}, convert) => {
       name,
       in: item.in,
       schema: convert(item.schema, state),
-      required: isRequired(item.schema)
+      required: isRequired(item.schema),
     };
   }
   return openApiParameter;
 };
 
 const convertParamsFromPath = (params, state, convert) => {
-  let parameters = (params || []).map(item => {
+  let parameters = (params || []).map((item) => {
     return makeOpenApiParam(item, state, convert);
   });
   return parameters;
@@ -40,10 +40,10 @@ const convertParamsFromComponents = (params, state, convert) => {
   return parameters;
 };
 
-const wrapInBrackets = str =>
+const wrapInBrackets = (str) =>
   `${str
     .split("/")
-    .map(s => {
+    .map((s) => {
       if (s.startsWith(":")) {
         s = `{${s.replace(/^:/g, "")}}`;
       }
@@ -52,14 +52,14 @@ const wrapInBrackets = str =>
     .join("/")}`;
 
 const getPaths = (paths, state, convert) => {
-  const mapObject = objToMap =>
+  const mapObject = (objToMap) =>
     objToMap.isJoi
       ? convert(objToMap, state)
       : Object.keys(objToMap || {}).reduce((obj, item) => {
           let convertItem = objToMap[item] || {};
           if (!convertItem.isJoi) convertItem = joi.compile(convertItem);
           return Object.assign(obj, {
-            [item]: { schema: convert(convertItem, state) }
+            [item]: { schema: convert(convertItem, state) },
           });
         }, {});
 
@@ -89,7 +89,7 @@ const getPaths = (paths, state, convert) => {
           if (!itemOpenApiTranformed.$ref) {
             itemOpenApiTranformed = {
               description: "",
-              content: itemOpenApiTranformed
+              content: itemOpenApiTranformed,
             };
           }
           obj[item] = itemOpenApiTranformed;
@@ -103,7 +103,7 @@ const getPaths = (paths, state, convert) => {
         );
         if (!requestBodyToOpenApi.$ref) {
           requestBodyToOpenApi = {
-            content: requestBodyToOpenApi
+            content: requestBodyToOpenApi,
           };
         }
         openAPIHandler.requestBody = requestBodyToOpenApi;
@@ -115,7 +115,7 @@ const getPaths = (paths, state, convert) => {
   return openAPIPaths;
 };
 
-const groupPathsByVersions = paths => {
+const groupPathsByVersions = (paths) => {
   const versionedPaths = {};
   const restEndpoint = Object.keys(paths || {});
   for (let i = 0, len_i = restEndpoint.length; i < len_i; i++) {
@@ -194,7 +194,7 @@ const parser = (joiSchema, s, convert) => {
   );
   const state = {
     ...s,
-    components: { ...(joiSchema._settings.components || {}) }
+    components: { ...(joiSchema._settings.components || {}) },
   };
   const routing = {};
   const emptyInfo = {
@@ -207,9 +207,9 @@ const parser = (joiSchema, s, convert) => {
       contact: {
         name: "your name",
         url: "http://your.contact.com",
-        email: "youremail@email.com"
-      }
-    }
+        email: "youremail@email.com",
+      },
+    },
   };
   const components = getComponents(
     joiSchema._settings.components || {},
@@ -218,7 +218,7 @@ const parser = (joiSchema, s, convert) => {
   );
   let custom = {};
   if (joiSchema._flags.customize) {
-    custom = joiSchema._flags.customize(schema => convert(schema, state));
+    custom = joiSchema._flags.customize((schema) => convert(schema, state));
   }
 
   for (let i = 0, len = versionedPaths.length; i < len; i++) {
@@ -228,7 +228,7 @@ const parser = (joiSchema, s, convert) => {
       ...emptyInfo,
       ...{ info: { ...emptyInfo.info, ...{ version } } },
       paths,
-      components
+      components,
     };
 
     if (custom) {

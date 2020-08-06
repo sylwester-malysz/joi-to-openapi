@@ -98,13 +98,21 @@ function needsOptOfPropagation(optList) {
   return optList.length > 0 && optList.some((opt) => opt.options.length > 0);
 }
 
+const mapWhens = (whens) =>
+  whens.map(({ is, otherwise, then }) => ({ is, otherwise, then }));
+
 const parser = (joiSchema, state, convert) => {
-  const child = getChild(joiSchema._inner.children, state, convert);
-  const requiredFields = getRequiredFields(joiSchema._inner.children);
+  const child = getChild(joiSchema.$_terms.keys, state, convert);
+  const requiredFields = getRequiredFields(joiSchema.$_terms.keys);
   const obj = Object.assign({ type: "object" }, child, requiredFields);
 
-  if (obj.properties && obj.properties.optOf) {
-    const { optOf, ...rest } = obj.properties;
+  const optOf = [
+    ...mapWhens(joiSchema.$_terms.whens || []),
+    ...((obj.properties && obj.properties.optOf) || []),
+  ];
+
+  if (optOf.length > 0) {
+    const { optOf: _, ...rest } = obj.properties;
     const newObj = { ...obj, properties: rest };
     const [currentScopeOpt, notInScopeOpt] = optOf.reduce(
       aggregateScopedPartitions(newObj),

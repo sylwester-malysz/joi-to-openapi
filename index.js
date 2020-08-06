@@ -13,25 +13,27 @@ const extensionParser = require("./parsersForTypes/extension");
 const optionsParser = require("./parsersForTypes/options");
 const anyParser = require("./parsersForTypes/any");
 
-const universalDecorator = joiSchema => {
+const isJoi = (obj) => obj.$_root && obj.$_root.isSchema(obj);
+
+const universalDecorator = (joiSchema) => {
   const universalParams = {};
 
   if (joiSchema._valids && joiSchema._valids.has(null)) {
     universalParams.nullable = true;
   }
 
-  if (joiSchema._valids && joiSchema._valids._set.size) {
-    const validValues = Array.from(joiSchema._valids._set);
+  if (joiSchema._valids && joiSchema._valids._values.size) {
+    const validValues = Array.from(joiSchema._valids._values);
     const notEmptyValues = validValues.filter(
-      value => value !== null && value !== ""
+      (value) => value !== null && value !== ""
     );
     if (notEmptyValues.length) {
       universalParams.enum = notEmptyValues;
     }
   }
 
-  if (joiSchema._description) {
-    universalParams.description = joiSchema._description;
+  if (joiSchema._flags.description) {
+    universalParams.description = joiSchema._flags.description;
   }
 
   if (joiSchema._flags.label) {
@@ -42,11 +44,13 @@ const universalDecorator = joiSchema => {
     universalParams.default = joiSchema._flags.default;
   }
 
-  if (joiSchema._examples && joiSchema._examples.length > 0) {
-    if (joiSchema._examples.length === 1) {
-      [universalParams.example] = joiSchema._examples;
+  const exampleLength =
+    (joiSchema.$_terms.examples && joiSchema.$_terms.examples.length) || 0;
+  if (exampleLength > 0) {
+    if (exampleLength === 1) {
+      [universalParams.example] = joiSchema.$_terms.examples;
     } else {
-      universalParams.examples = joiSchema._examples;
+      universalParams.examples = joiSchema.$_terms.examples;
     }
   }
   return universalParams;
@@ -57,13 +61,13 @@ const convertAux = (joiSchema, state) => {
     throw new Error("No schema was passed");
   }
 
-  if (!joiSchema.isJoi)
+  if (!isJoi(joiSchema))
     throw new TypeError("Passed schema does not appear to be a joi schema.");
 
-  const type = joiSchema._type;
+  const type = joiSchema.type;
   const newState = {
     ...state,
-    isRoot: typeof state.isRoot === "undefined"
+    isRoot: typeof state.isRoot === "undefined",
   };
   const decorator = universalDecorator(joiSchema);
   let swaggerSchema;
@@ -93,7 +97,7 @@ const convertAux = (joiSchema, state) => {
       swaggerSchema = dateParser(joiSchema);
       break;
     case "any":
-      swaggerSchema = anyParser(joiSchema);
+      swaggerSchema = anyParser(joiSchema, newState, convertAux);
       break;
     case "options":
       swaggerSchema = optionsParser(joiSchema, newState, convertAux);
@@ -106,7 +110,7 @@ const convertAux = (joiSchema, state) => {
       if (decorator.nullable) {
         delete decorator.nullable;
         swaggerSchema = {
-          oneOf: [swaggerSchema, { nullable: true }]
+          oneOf: [swaggerSchema, { nullable: true }],
         };
       }
       break;
