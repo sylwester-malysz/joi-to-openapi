@@ -1,4 +1,4 @@
-const { retrievePrintedReference } = require("./utils");
+const { retrievePrintedReference } = require("./reference");
 const deepcopy = require("deepcopy");
 
 const diff = (obj1, obj2, state, convert) => {

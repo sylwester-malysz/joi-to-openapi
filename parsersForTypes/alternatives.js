@@ -1,6 +1,4 @@
-const { makeOptions } = require("./alternatives_utils");
-const { merge } = require("./merge_utils");
-const { getBodyObjKey } = require("./utils");
+const { getBodyObjKey, merge, makeOptions } = require("./utils");
 
 const mergeObjects = (condition, originalObj, objKey, state, convert) => {
   const properties = condition

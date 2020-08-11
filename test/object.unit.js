@@ -1008,7 +1008,6 @@ describe("Joi Object to OpenAPI", () => {
 
     it("should convert the object in the proper open-api", () => {
       const converted = convert(obj);
-      debugger;
       return expect(converted).deep.equal(expectedObj);
     });
   });

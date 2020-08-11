@@ -1,6 +1,10 @@
-const { retrievePrintedReference } = require("./utils");
+const {
+  retrievePrintedReference,
+  retrieveReferenceByName,
+} = require("./reference");
+const { merge, mergeDiff } = require("./merge");
+
 const deepcopy = require("deepcopy");
-const { merge } = require("./merge_utils");
 const _ = require("lodash");
 const { overlapping } = require("./overlapping");
 const { diff } = require("./difference");
@@ -53,7 +57,6 @@ const addKeysAsRequired = (keys, obj) => {
 };
 
 const makeOptions = (peek, then, otherwise, state, convert) => {
-  debugger;
   const [falsyOptions, falsePaths] = singleFieldObject(peek);
   const negativeOptions = falsyOptions.map((o) =>
     diff(otherwise, o, state, convert)
@@ -69,7 +72,6 @@ const makeOptions = (peek, then, otherwise, state, convert) => {
   const negativeAlternatives = zipNegativeAndKeys.reduce((acc, [obj, keys]) => {
     return [...acc, addKeysAsRequired(allNegativeMissingKeys.diff(keys), obj)];
   }, []);
-  debugger;
   return {
     oneOf: [
       addKeysAsRequired(
@@ -79,25 +81,6 @@ const makeOptions = (peek, then, otherwise, state, convert) => {
       ...removeOverlapping(negativeAlternatives, falsePaths, state, convert),
     ],
   };
-};
-
-const mergeDiff = (obj1, obj2) => {
-  if ("object" === typeof obj1 && !(obj1 instanceof Array)) {
-    return Object.entries(obj1).reduce((acc, [k, v]) => {
-      if (k === "required") {
-        return {
-          ...acc,
-          [k]: [...new Set([...(v || []), ...(acc[k] || [])])],
-        };
-      }
-      if (acc[k]) {
-        return { ...acc, [k]: mergeDiff(acc[k], v) };
-      }
-      return acc;
-    }, obj2);
-  } else {
-    return obj1;
-  }
 };
 
 const extractObjFromPath = (path, obj, store, state, convert) => {
@@ -224,7 +207,6 @@ const createOpenApiObject = (path, root, obj, state, convert) => {
       return { [key]: container };
     }, obj),
   };
-  debugger;
   return merge(root, _obj, state, convert);
 };
 
@@ -281,7 +263,6 @@ const createPeeks = (options, originalObj, state, convert) => {
       ),
       ...alt,
     ];
-    debugger;
     return acc.length === 0
       ? peeksAlternatives
       : peeksAlternatives.reduce(
@@ -312,29 +293,6 @@ const makeAlternativesFromOptions = (optOf, newObj, state, convert) => {
   }
 };
 
-const getProperty = (refName, properties) => {
-  const refList = refName.split(".");
-  return refList.reduce(
-    (obj, key) => {
-      let r = obj[key];
-      if (r.type === "object") return r.properties;
-      return r;
-    },
-    { ...properties }
-  );
-};
-
-const retrieveReference = (nameReference, objChildren, state, convert) => {
-  if (!objChildren)
-    throw new Error(
-      `Missing object where the reference [${nameReference}] should be`
-    );
-
-  const property = getProperty(nameReference, objChildren.properties);
-  const referenceObjJoi = retrievePrintedReference(property, state.components);
-  return referenceObjJoi ? convert(referenceObjJoi, state) : property;
-};
-
 const joinOption = (option, opt, key) => {
   option.thennable = [...(option.thennable || []), { key: key, opt: opt.then }];
   option.otherwise = [
@@ -346,9 +304,12 @@ const joinOption = (option, opt, key) => {
 
 const getStoredKeyFromOption = (option, objChildren, state, convert) => {
   if (option.is && option.is.type === "any") {
-    const isRequired = option.is.isRequired;
-    option.is = retrieveReference(option["ref"], objChildren, state, convert);
-    option.is.isRequired = isRequired;
+    option.is = retrieveReferenceByName(
+      option["ref"],
+      objChildren,
+      state,
+      convert
+    );
   }
   return option;
 };
@@ -356,7 +317,6 @@ const getStoredKeyFromOption = (option, objChildren, state, convert) => {
 const isGlobalRepresentation = (obj) => obj.type === "string" && !obj.enum;
 
 const groupByOptions = (opts, objChildren, state, convert) => {
-  debugger;
   const _objChildren = deepcopy(objChildren);
   return opts.reduce((store, opt) => {
     return opt.options.reduce((store, option) => {
@@ -368,7 +328,12 @@ const groupByOptions = (opts, objChildren, state, convert) => {
       );
       const reference = option["ref"];
       const referenceContainer = store[reference] || {
-        reference: retrieveReference(reference, _objChildren, state, convert),
+        reference: retrieveReferenceByName(
+          reference,
+          _objChildren,
+          state,
+          convert
+        ),
         alternatives: {},
       };
       if (isGlobalRepresentation(maybeConvertedOption.is)) {
@@ -407,4 +372,4 @@ const groupByOptions = (opts, objChildren, state, convert) => {
   }, {});
 };
 
-module.exports = { makeOptions, makeAlternativesFromOptions }; //, buildAlt };
+module.exports = { makeOptions, makeAlternativesFromOptions };

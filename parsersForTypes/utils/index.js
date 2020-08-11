@@ -1,40 +1,8 @@
 const deepcopy = require("deepcopy");
-
-const isJoi = (obj) => obj.$_root && obj.$_root.isSchema(obj);
-
-const retrieveReference = (joiReference, components) => {
-  if (isJoi(joiReference) && joiReference.type == "reference") {
-    const reference = joiReference._flags._ref || "";
-    const [componentRef, itemRef] = reference.split(":");
-    return deepcopy(getRef(componentRef, itemRef, components));
-  }
-
-  return undefined;
-};
-
-const getRef = (componentRef, itemRef, components) => {
-  if (
-    !componentRef ||
-    !itemRef ||
-    !components ||
-    !components[componentRef] ||
-    !components[componentRef][itemRef]
-  )
-    throw Error(
-      `wrong reference ${componentRef}:${itemRef}. Please make sure there exists a schema in the component`
-    );
-  return components[componentRef][itemRef];
-};
-
-const retrievePrintedReference = (joiReference, components) => {
-  if (joiReference["$ref"]) {
-    const reference = joiReference["$ref"] || "";
-    const [componentRef, itemRef] = reference.split("/").splice(2);
-    return getRef(componentRef, itemRef, components);
-  }
-
-  return undefined;
-};
+const { makeOptions, makeAlternativesFromOptions } = require("./alternatives");
+const { merge, mergeDiff } = require("./merge");
+const { retrieveReference, retrievePrintedReference } = require("./reference");
+const { isJoi } = require("./joi");
 
 const getBodyObjKey = (condition) => {
   if ("oneOf" in condition) return { oneOf: condition.oneOf };
@@ -105,4 +73,8 @@ module.exports = {
   values,
   options,
   isJoi,
+  makeOptions,
+  makeAlternativesFromOptions,
+  merge,
+  mergeDiff,
 };

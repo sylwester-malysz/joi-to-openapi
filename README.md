@@ -20,7 +20,7 @@ let joi = Joi.extend((joi) => ({
   rules: [],
 }));
 
-console.log(convert(joi));
+console.log(convert(joi.date_start()));
 ```
 
 will output
@@ -49,7 +49,7 @@ let joi = Joi.extend((joi) => ({
   rules: [],
 }));
 
-convertToFile(joi, "./");
+convertToFile(joi.date_start(), "./");
 ```
 
 will output

@@ -1,10 +1,9 @@
 const {
-  makeAlternativesFromOptions,
-  //buildAlt,
+  getBodyObjKey,
   makeOptions,
-} = require("./alternatives_utils");
-const { merge } = require("./merge_utils");
-const { getBodyObjKey } = require("./utils");
+  makeAlternativesFromOptions,
+  merge,
+} = require("./utils");
 const _ = require("lodash");
 
 const deepcopy = require("deepcopy");
@@ -105,15 +104,18 @@ function needsOptOfPropagation(optList) {
   return optList.length > 0 && optList.some((opt) => opt.options.length > 0);
 }
 
-const synchRequired = (required, obj) => {
+const overwriteRequired = (obj1, obj2) => {
+  const _obj1 = deepcopy(obj1);
+  const _obj2 = deepcopy(obj2);
+  let required = _obj1.required;
   if (required) {
-    const allKeys = Object.keys(obj.properties);
-    const noRequiredKeys = _.difference(allKeys, obj.required || []);
+    const allKeys = Object.keys(_obj2.properties);
+    const noRequiredKeys = _.difference(allKeys, _obj2.required || []);
     const newRequired = _.difference(required, noRequiredKeys);
-    if (newRequired.length > 0) return newRequired;
+    if (newRequired.length > 0) required = newRequired;
   }
 
-  return undefined;
+  return { ..._obj1, required };
 };
 
 const parser = (joiSchema, state, convert) => {
@@ -125,21 +127,10 @@ const parser = (joiSchema, state, convert) => {
     const conditionals = joiSchema.$_terms.whens[0];
     const thennable = convert(conditionals.then, state);
     const otherwise = convert(conditionals.otherwise, state);
-    let req = obj.required;
     obj = makeOptions(
       convert(conditionals.is, state),
-      merge(
-        { ...obj, required: synchRequired(req, thennable) },
-        thennable,
-        state,
-        convert
-      ),
-      merge(
-        { ...obj, required: synchRequired(req, otherwise) },
-        otherwise,
-        state,
-        convert
-      ),
+      merge(overwriteRequired(obj, thennable), thennable, state, convert),
+      merge(overwriteRequired(obj, otherwise), otherwise, state, convert),
       state,
       convert
     );

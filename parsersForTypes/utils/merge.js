@@ -1,6 +1,6 @@
 const deepcopy = require("deepcopy");
 const _ = require("lodash");
-const { retrievePrintedReference } = require("./utils");
+const { retrievePrintedReference } = require("./reference");
 
 const mergeProperties = (property1, property2, state, convert) => {
   const _property1 = deepcopy(property1);
@@ -86,7 +86,6 @@ const mergeObject = (obj1, obj2, state, convert) => {
       ...new Set([...(obj1.required || []), ...(obj2.required || [])]),
     ];
   }
-  debugger;
   return mergedObj;
 };
 
@@ -152,7 +151,6 @@ const merge = (obj1, obj2, state, convert) => {
     case "boolean":
       return mergeBoolean(object1, object2);
     default:
-      debugger;
       if (object1.oneOf && object2.oneOf) {
         return mergeOneOf(object1, object2);
       }
@@ -163,4 +161,23 @@ const merge = (obj1, obj2, state, convert) => {
   }
 };
 
-module.exports = { merge };
+const mergeDiff = (obj1, obj2) => {
+  if ("object" === typeof obj1 && !(obj1 instanceof Array)) {
+    return Object.entries(obj1).reduce((acc, [k, v]) => {
+      if (k === "required") {
+        return {
+          ...acc,
+          [k]: [...new Set([...(v || []), ...(acc[k] || [])])],
+        };
+      }
+      if (acc[k]) {
+        return { ...acc, [k]: mergeDiff(acc[k], v) };
+      }
+      return acc;
+    }, obj2);
+  } else {
+    return obj1;
+  }
+};
+
+module.exports = { merge, mergeDiff };
