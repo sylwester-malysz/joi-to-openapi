@@ -9,8 +9,7 @@ const { convert } = require("../index");
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
 
-const Joi = require("@hapi/joi");
-const joiToOpenapi = require("../index");
+const Joi = require("joi");
 
 describe("Joi Object to OpenAPI", () => {
   beforeEach(() => {});
@@ -34,6 +33,97 @@ describe("Joi Object to OpenAPI", () => {
           },
           text: {
             type: "string",
+          },
+        },
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When an object is given with strings keys with values", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object()
+        .keys({
+          code: Joi.string().valid("500", "300", "200"),
+          text: Joi.string(),
+        })
+        .and("code", "text");
+      expectedObj = {
+        type: "object",
+        properties: {
+          code: {
+            type: "string",
+            enum: ["500", "300", "200"],
+          },
+          text: {
+            type: "string",
+          },
+        },
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When an object is given with strings keys and examples", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object()
+        .keys({
+          code: Joi.string().valid("500", "300", "200"),
+          text: Joi.string().example("This is a test"),
+        })
+        .and("code", "text");
+      expectedObj = {
+        type: "object",
+        properties: {
+          code: {
+            type: "string",
+            enum: ["500", "300", "200"],
+          },
+          text: {
+            type: "string",
+            example: "This is a test",
+          },
+        },
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When an object is given with strings keys and multiple examples", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object()
+        .keys({
+          code: Joi.string().valid("500", "300", "200"),
+          text: Joi.string()
+            .example("This is a test")
+            .example("Happy Joi"),
+        })
+        .and("code", "text");
+      expectedObj = {
+        type: "object",
+        properties: {
+          code: {
+            type: "string",
+            enum: ["500", "300", "200"],
+          },
+          text: {
+            type: "string",
+            examples: ["This is a test", "Happy Joi"],
           },
         },
       };
@@ -128,8 +218,10 @@ describe("Joi Object to OpenAPI", () => {
       };
     });
 
-    it("should convert the object in the proper open-api", () =>
-      expect(convert(obj)).deep.equal(expectedObj));
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      return expect(converted).deep.equal(expectedObj);
+    });
   });
 
   describe("When an object with multiple conditional with same value and reference is given", () => {
@@ -140,7 +232,7 @@ describe("Joi Object to OpenAPI", () => {
       obj = Joi.object().keys({
         body: Joi.object().keys({
           stream: Joi.string()
-            .valid(["inbound", "outbound"])
+            .valid("inbound", "outbound")
             .required(),
         }),
         sender: Joi.when(Joi.ref("body.stream"), {
@@ -207,8 +299,10 @@ describe("Joi Object to OpenAPI", () => {
       };
     });
 
-    it("should convert the object in the proper open-api", () =>
-      expect(convert(obj)).deep.equal(expectedObj));
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      expect(converted).deep.equal(expectedObj);
+    });
   });
 
   describe("When an object with string is optional or required basing on existence", () => {
@@ -224,13 +318,15 @@ describe("Joi Object to OpenAPI", () => {
           name: Joi.string()
             .allow(null)
             .optional(),
-          channel: Joi.string().when("user", {
-            is: Joi.exist(),
-            then: Joi.optional(),
-            otherwise: Joi.required(),
-          }),
+          channel: Joi.string()
+            .valid("test", "on")
+            .when("user", {
+              is: Joi.exist(),
+              then: Joi.any(),
+              otherwise: Joi.required(),
+            }),
           action: Joi.string()
-            .valid(["create", "delete"])
+            .valid("create", "delete")
             .required(),
           user: Joi.string().optional(),
         })
@@ -251,6 +347,7 @@ describe("Joi Object to OpenAPI", () => {
               },
               channel: {
                 type: "string",
+                enum: ["test", "on"],
               },
               action: {
                 type: "string",
@@ -275,6 +372,7 @@ describe("Joi Object to OpenAPI", () => {
               },
               channel: {
                 type: "string",
+                enum: ["test", "on"],
               },
               action: {
                 type: "string",
@@ -287,8 +385,10 @@ describe("Joi Object to OpenAPI", () => {
       };
     });
 
-    it("should convert the object in the proper open-api", () =>
-      expect(convert(obj)).deep.equal(expectedObj));
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      return expect(converted).deep.equal(expectedObj);
+    });
   });
 
   describe("When an object with string is forbidden or required basing on existence", () => {
@@ -310,10 +410,10 @@ describe("Joi Object to OpenAPI", () => {
             otherwise: Joi.required(),
           }),
           action: Joi.string()
-            .valid(["create", "delete"])
+            .valid("create", "delete")
             .required(),
           transition: Joi.string()
-            .valid(["up", "down"])
+            .valid("up", "down")
             .required(),
         })
         .or("user_id", "user_name")
@@ -456,18 +556,18 @@ describe("Joi Object to OpenAPI", () => {
         someObject: Joi.object()
           .keys({
             name: Joi.string(),
-            fame: Joi.string().valid(["famous", "vip"]),
+            fame: Joi.string().valid("famous", "vip"),
           })
           .required(),
         status: Joi.string()
-          .valid(["available", "busy"])
+          .valid("available", "busy")
           .insensitive()
           .required(),
       }).when(
         Joi.object()
           .keys({
             status: Joi.string()
-              .valid(["busy"])
+              .valid("busy")
               .required(),
           })
           .unknown(),
@@ -756,6 +856,159 @@ describe("Joi Object to OpenAPI", () => {
     it("should convert the object in the proper open-api", () => {
       const converted = convert(obj);
       expect(converted).deep.equal(expectedObj);
+    });
+  });
+
+  describe("When .when is applied to an object", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object({
+        from: Joi.string()
+          .allow("")
+          .required(),
+        timestamp: Joi.string().required(),
+        identifier: Joi.string().required(),
+        device_id: Joi.string().required(),
+        body: Joi.object()
+          .keys({
+            status: Joi.string().valid("on", "off", "pause"),
+            stream_direction: Joi.string()
+              .valid("in", "out")
+              .required(),
+          })
+          .required(),
+      }).when(
+        Joi.object({
+          body: Joi.object({
+            stream_direction: Joi.string()
+              .valid("in")
+              .required(),
+            status: Joi.string()
+              .valid("pause")
+              .required(),
+          })
+            .required()
+            .unknown(),
+        }).unknown(),
+        {
+          then: Joi.object({
+            identifier: Joi.string().optional(),
+            device_id: Joi.string().optional(),
+          }),
+          otherwise: Joi.object({
+            identifier: Joi.string().required(),
+            device_id: Joi.string().required(),
+          }),
+        }
+      );
+
+      expectedObj = {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              from: {
+                type: "string",
+              },
+              timestamp: {
+                type: "string",
+              },
+              body: {
+                type: "object",
+                properties: {
+                  status: {
+                    type: "string",
+                    enum: ["pause"],
+                  },
+                  stream_direction: {
+                    type: "string",
+                    enum: ["in"],
+                  },
+                },
+                required: ["stream_direction", "status"],
+              },
+              identifier: {
+                type: "string",
+              },
+              device_id: {
+                type: "string",
+              },
+            },
+            required: ["from", "timestamp", "body"],
+          },
+          {
+            type: "object",
+            properties: {
+              from: {
+                type: "string",
+              },
+              timestamp: {
+                type: "string",
+              },
+              body: {
+                type: "object",
+                properties: {
+                  status: {
+                    type: "string",
+                    enum: ["on", "off", "pause"],
+                  },
+                  stream_direction: {
+                    type: "string",
+                    enum: ["out"],
+                  },
+                },
+                required: ["stream_direction"],
+              },
+              identifier: {
+                type: "string",
+              },
+              device_id: {
+                type: "string",
+              },
+            },
+            required: ["from", "timestamp", "identifier", "device_id", "body"],
+          },
+          {
+            type: "object",
+            properties: {
+              from: {
+                type: "string",
+              },
+              timestamp: {
+                type: "string",
+              },
+              body: {
+                type: "object",
+                properties: {
+                  status: {
+                    type: "string",
+                    enum: ["on", "off"],
+                  },
+                  stream_direction: {
+                    type: "string",
+                    enum: ["in"],
+                  },
+                },
+                required: ["stream_direction"],
+              },
+              identifier: {
+                type: "string",
+              },
+              device_id: {
+                type: "string",
+              },
+            },
+            required: ["from", "timestamp", "identifier", "device_id", "body"],
+          },
+        ],
+      };
+    });
+
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      return expect(converted).deep.equal(expectedObj);
     });
   });
 });

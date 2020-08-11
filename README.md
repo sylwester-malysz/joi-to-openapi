@@ -7,20 +7,20 @@ Now the library support to outputs for converted joi: standard output and file.
 # examples
 
 ```javascript
-const Joi = require("@hapi/joi");
+const Joi = require("joi");
 const { convert } = require("joi-openapi");
 
-let joi = Joi.extend(joi => ({
+let joi = Joi.extend((joi) => ({
   base: joi
     .string()
     .isoDate()
     .description("Date in ISO format"),
   name: "date_start",
   language: {},
-  rules: []
+  rules: [],
 }));
 
-console.log(convert(joi));
+console.log(convert(joi.date_start()));
 ```
 
 will output
@@ -36,20 +36,20 @@ will output
 to write the output on a file
 
 ```javascript
-const Joi = require("@hapi/joi");
+const Joi = require("joi");
 const { convertToFile } = require("joi-openapi");
 
-let joi = Joi.extend(joi => ({
+let joi = Joi.extend((joi) => ({
   base: joi
     .string()
     .isoDate()
     .description("Date in ISO format"),
   name: "date_start",
   language: {},
-  rules: []
+  rules: [],
 }));
 
-convertToFile(joi, "./");
+convertToFile(joi.date_start(), "./");
 ```
 
 will output

@@ -1,7 +1,13 @@
-const { retrievePrintedReference } = require("./utils");
+const {
+  retrievePrintedReference,
+  retrieveReferenceByName,
+} = require("./reference");
+const { merge, mergeDiff } = require("./merge");
+
 const deepcopy = require("deepcopy");
-const { merge } = require("./merge_utils");
 const _ = require("lodash");
+const { overlapping } = require("./overlapping");
+const { diff } = require("./difference");
 
 Array.prototype.equals = function(lst) {
   const [head, ...tail] = this;
@@ -14,7 +20,7 @@ Array.prototype.diff = function(lst) {
   return _.difference(this, lst);
 };
 
-const areKeysPresent = (paths, obj) => {
+const missingKeys = (paths, obj) => {
   return paths.reduce((acc, path) => {
     const objByPath = path.split(".").reduce((acc, p) => {
       if (acc && acc.properties) return acc.properties[p];
@@ -52,187 +58,94 @@ const addKeysAsRequired = (keys, obj) => {
 
 const makeOptions = (peek, then, otherwise, state, convert) => {
   const [falsyOptions, falsePaths] = singleFieldObject(peek);
-
   const negativeOptions = falsyOptions.map((o) =>
-    makeDiff(deepcopy(otherwise), o, state, convert)
+    diff(otherwise, o, state, convert)
   );
   const positionOption = mergeDiff(then, peek);
   const [missingKey = [], ...keys] = negativeOptions.reduce((acc, obj) => {
-    return [...acc, areKeysPresent(falsePaths, obj)];
+    return [...acc, missingKeys(falsePaths, obj)];
   }, []);
-  const positiveMissingKeys = areKeysPresent(falsePaths, positionOption);
+  const positiveMissingKeys = missingKeys(falsePaths, positionOption);
   const allNegativeMissingKeys = keys.reduce(_.intersection, missingKey);
 
   const zipNegativeAndKeys = _.zip(negativeOptions, [missingKey, ...keys]);
-
+  const negativeAlternatives = zipNegativeAndKeys.reduce((acc, [obj, keys]) => {
+    return [...acc, addKeysAsRequired(allNegativeMissingKeys.diff(keys), obj)];
+  }, []);
   return {
     oneOf: [
       addKeysAsRequired(
         allNegativeMissingKeys.diff(positiveMissingKeys),
         positionOption
       ),
-      ...removeOverlapping(
-        zipNegativeAndKeys.reduce((acc, [obj, keys]) => {
-          return [
-            ...acc,
-            addKeysAsRequired(allNegativeMissingKeys.diff(keys), obj),
-          ];
-        }, []),
-        falsePaths,
-        state,
-        convert
-      ),
+      ...removeOverlapping(negativeAlternatives, falsePaths, state, convert),
     ],
   };
 };
 
-const mergeDiff = (obj1, obj2) => {
-  if ("object" === typeof obj1 && !(obj1 instanceof Array)) {
-    return Object.entries(obj1).reduce((acc, [k, v]) => {
-      if (k === "required") {
-        return {
-          ...acc,
-          [k]: [...new Set([...(v || []), ...(acc[k] || [])])],
-        };
-      }
-      if (acc[k]) {
-        return { ...acc, [k]: mergeDiff(acc[k], v) };
-      }
-      return acc;
-    }, obj2);
-  } else {
-    return obj1;
-  }
-};
-
-const extractObjFromPath = (path, obj, store, state) => {
+const extractObjFromPath = (path, obj, store, state, convert) => {
+  const _obj = deepcopy(obj);
   const [key, ...keys] = path;
   if (!key) return obj;
-  if (obj && obj["$ref"]) obj = retrievePrintedReference(obj, state.components);
-  if (!obj || (!obj[key] && !obj.properties && !obj.properties[key])) return {};
+  if (_obj && obj["$ref"])
+    _obj = retrievePrintedReference(_obj, state.components);
+  if (!_obj || (!_obj[key] && !_obj.properties && !_obj.properties[key]))
+    return {};
 
   const nest = store[key] || {};
-
-  if (obj.type === "object") {
-    return {
-      [key]: {
-        ...nest,
-        ...extractObjFromPath(keys, obj.properties[key], nest, state),
+  if (_obj.type === "object") {
+    return merge(
+      store,
+      {
+        type: "object",
+        properties: {
+          [key]: {
+            ...extractObjFromPath(
+              keys,
+              _obj.properties[key],
+              nest,
+              state,
+              convert
+            ),
+          },
+        },
       },
-    };
+      state,
+      convert
+    );
   }
 
-  return { [key]: { ...nest, ...obj[key] } };
+  return { [key]: { ...nest, ..._obj[key] } };
 };
+
+const makeView = (paths, obj, state, convert) =>
+  paths.reduce(
+    (acc, p) => extractObjFromPath(p.split("."), obj, acc, state, convert),
+    {}
+  );
 
 const removeOverlapping = (list, paths, state, convert) => {
   const [head, ...tail] = list || [];
   if (!head) return [];
+  const objView = makeView(paths, head, state, convert);
 
-  const objView = paths.reduce(
-    (acc, p) => extractObjFromPath(p.split("."), head, acc, state),
-    {}
-  );
+  const notCoveredObjs = tail
+    .filter((obj) => {
+      const partialView = makeView(paths, obj, state, convert);
+      const partialDiff = diff(partialView, objView, state, convert);
+      const allKeysMissing =
+        missingKeys(paths, partialDiff).length === paths.length;
+      return !allKeysMissing;
+    })
+    .map((obj) => overlapping(obj, head, state, convert));
 
   const tailNoOverlap = removeOverlapping(
-    tail
-      .map((l) => cleanFromOverlapping(l, objView, state, convert))
-      .filter(([_, keep]) => !keep)
-      .map(([el, _]) => el),
+    notCoveredObjs,
     paths,
     state,
     convert
   );
   return [head, ...tailNoOverlap];
-};
-
-const cleanFromOverlapping = (obj1, obj2, state, convert) => {
-  const supportFn = {
-    string: (obj1, obj2) => {
-      const remainingItems = obj1.enum.diff(obj2.enum);
-      if (remainingItems.length == 0) {
-        return [obj1, false];
-      }
-
-      return [{ ...obj1, enum: remainingItems }, true];
-    },
-  };
-  return diff(obj1, obj2, state, convert, supportFn);
-};
-
-const makeDiff = (obj1, obj2, state, convert) => {
-  const supportFn = {
-    string: (obj1, obj2) => {
-      if (!obj1.enum && !obj2.enum) return [undefined, false];
-      if (!obj1.enum) {
-        const oldEnum = obj1.not ? obj1.not.enum || [] : [];
-        return [{ ...obj1, not: { enum: [...oldEnum, ...obj2.enum] } }, false];
-      }
-      const remainingItems = obj1.enum.diff(obj2.enum || []);
-      if (remainingItems.length == 0) {
-        return [undefined, false];
-      }
-      return [{ ...obj1, enum: remainingItems }, false];
-    },
-  };
-  const [dObj, _] = diff(obj1, obj2, state, convert, supportFn);
-  return dObj;
-};
-
-const diffObject = (obj1, obj2, state, convert, supportFn) => {
-  return Object.entries(obj2).reduce(
-    ([acc, keep], [k, v]) => {
-      const propertyKey = acc.properties[k];
-      if (propertyKey) {
-        const [child, noTotallyRemoved] = diff(
-          propertyKey,
-          v,
-          state,
-          convert,
-          supportFn
-        );
-        delete acc.properties[k];
-        return child
-          ? [
-              {
-                ...acc,
-                properties: {
-                  ...acc.properties,
-                  [k]: child,
-                },
-              },
-              keep && noTotallyRemoved,
-            ]
-          : [acc, keep];
-      }
-
-      return [acc, keep];
-    },
-    [obj1, true]
-  );
-};
-
-const diffReference = (r1, r2, state, convert, supportFn) => {
-  const fn = (obj) =>
-    convert(retrievePrintedReference(obj, state.components), state);
-  return diff(
-    r1.$ref ? fn(r1) : r1,
-    r2.$ref ? fn(r2) : r2,
-    state,
-    convert,
-    supportFn
-  );
-};
-
-const diff = (obj1, obj2, state, convert, supportFn) => {
-  const { type } = obj1;
-  if (type === "object")
-    return diffObject(obj1, obj2, state, convert, supportFn);
-  if (obj2.$ref || obj1.$ref)
-    return diffReference(obj1, obj2, state, convert, supportFn);
-  if (type && supportFn[type]) return supportFn[type](obj1, obj2);
-
-  return [obj1, true];
 };
 
 const singleFieldObject = (_obj) => {
@@ -242,7 +155,10 @@ const singleFieldObject = (_obj) => {
       ([objs, paths], [k, v]) => {
         const [os, ps] = singleFieldObject(v);
         return [
-          [...objs, ...os.map((o) => ({ [k]: o }))],
+          [
+            ...objs,
+            ...os.map((o) => ({ type: "object", properties: { [k]: o } })),
+          ],
           [...paths, ...ps.map((p) => `${k}${p ? "." : ""}${p}`)],
         ];
       },
@@ -257,18 +173,19 @@ const buildAlternative = (lst, originalObj, state, convert) => {
   const newObj = opts.reduce(
     (acc, obj) => {
       const { isRequired, ...rest } = obj.opt;
-      if (isRequired) {
-        acc.required = [...(acc.required || []), obj.key];
-      }
-      return merge(
-        acc,
-        {
-          type: "object",
-          properties: { [obj.key]: rest },
+
+      const _toMerge = {
+        type: "object",
+        properties: {
+          [obj.key]: rest,
         },
-        state,
-        convert
-      );
+      };
+
+      if (isRequired || (acc.required || []).includes(obj.key)) {
+        _toMerge.required = [obj.key];
+      }
+
+      return merge(acc, _toMerge, state, convert);
     },
     { ...deepcopy(originalObj) }
   );
@@ -278,21 +195,19 @@ const buildAlternative = (lst, originalObj, state, convert) => {
 };
 
 const createOpenApiObject = (path, root, obj, state, convert) => {
-  return merge(
-    root,
-    {
-      type: "object",
-      properties: [...path].reverse().reduce((acc, key) => {
-        let container = { ...acc };
-        if (!container.type) {
-          container = { type: "object", properties: container };
-        }
-        return { [key]: container };
-      }, obj),
-    },
-    state,
-    convert
-  );
+  const _obj = {
+    type: "object",
+    properties: [...path].reverse().reduce((acc, key) => {
+      const { isRequired, ...rest } = acc;
+
+      let container = { ...rest };
+      if (!container.type) {
+        container = { type: "object", properties: container };
+      }
+      return { [key]: container };
+    }, obj),
+  };
+  return merge(root, _obj, state, convert);
 };
 
 const createPeekAlternative = (
@@ -309,12 +224,13 @@ const createPeekAlternative = (
   otherwise: buildAlternative(otherwise, fullObject, state, convert),
 });
 
-const createPeeks = (options, originalObj, state, convert) =>
-  Object.entries(options).reduce((acc, [k, v]) => {
+const createPeeks = (options, originalObj, state, convert) => {
+  const _originalObj = deepcopy(originalObj);
+  return Object.entries(options).reduce((acc, [k, v]) => {
     const objectPath = k.split(".");
     const fullObject = createOpenApiObject(
       objectPath,
-      originalObj,
+      _originalObj,
       v.reference,
       state,
       convert
@@ -347,7 +263,6 @@ const createPeeks = (options, originalObj, state, convert) =>
       ),
       ...alt,
     ];
-
     return acc.length === 0
       ? peeksAlternatives
       : peeksAlternatives.reduce(
@@ -355,6 +270,7 @@ const createPeeks = (options, originalObj, state, convert) =>
           acc
         );
   }, []);
+};
 
 const makeAlternativesFromOptions = (optOf, newObj, state, convert) => {
   const nonEmptyOptions = optOf.filter((opt) => opt.options.length !== 0);
@@ -377,29 +293,6 @@ const makeAlternativesFromOptions = (optOf, newObj, state, convert) => {
   }
 };
 
-const getProperty = (refName, properties) => {
-  const refList = refName.split(".");
-  return refList.reduce(
-    (obj, key) => {
-      let r = obj[key];
-      if (r.type === "object") return r.properties;
-      return r;
-    },
-    { ...properties }
-  );
-};
-
-const retrieveReference = (nameReference, objChildren, state, convert) => {
-  if (!objChildren)
-    throw new Error(
-      `Missing object where the reference [${nameReference}] should be`
-    );
-
-  const property = getProperty(nameReference, objChildren.properties);
-  const referenceObjJoi = retrievePrintedReference(property, state.components);
-  return referenceObjJoi ? convert(referenceObjJoi, state) : property;
-};
-
 const joinOption = (option, opt, key) => {
   option.thennable = [...(option.thennable || []), { key: key, opt: opt.then }];
   option.otherwise = [
@@ -411,25 +304,36 @@ const joinOption = (option, opt, key) => {
 
 const getStoredKeyFromOption = (option, objChildren, state, convert) => {
   if (option.is && option.is.type === "any") {
-    option.is = retrieveReference(option["ref"], objChildren, state, convert);
+    option.is = retrieveReferenceByName(
+      option["ref"],
+      objChildren,
+      state,
+      convert
+    );
   }
   return option;
 };
 
 const isGlobalRepresentation = (obj) => obj.type === "string" && !obj.enum;
 
-const groupByOptions = (opts, objChildren, state, convert) =>
-  opts.reduce((store, opt) => {
+const groupByOptions = (opts, objChildren, state, convert) => {
+  const _objChildren = deepcopy(objChildren);
+  return opts.reduce((store, opt) => {
     return opt.options.reduce((store, option) => {
       const maybeConvertedOption = getStoredKeyFromOption(
         option,
-        objChildren,
+        _objChildren,
         state,
         convert
       );
       const reference = option["ref"];
       const referenceContainer = store[reference] || {
-        reference: retrieveReference(reference, objChildren, state, convert),
+        reference: retrieveReferenceByName(
+          reference,
+          _objChildren,
+          state,
+          convert
+        ),
         alternatives: {},
       };
       if (isGlobalRepresentation(maybeConvertedOption.is)) {
@@ -466,5 +370,6 @@ const groupByOptions = (opts, objChildren, state, convert) =>
       }
     }, store);
   }, {});
+};
 
 module.exports = { makeOptions, makeAlternativesFromOptions };

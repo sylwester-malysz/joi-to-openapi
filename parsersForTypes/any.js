@@ -1,4 +1,20 @@
-const parser = schema => {
+const { options } = require("./utils");
+
+const convertIfPresent = (cond, values, convert, state) => {
+  let c;
+  if (cond) {
+    if (cond._flags.presence === "forbidden") return undefined;
+    c = convert(cond, state);
+    if (c) c.isRequired = cond._flags.presence === "required";
+  }
+  return c;
+};
+
+const parser = (schema, state, convert) => {
+  if (schema.$_terms.whens) {
+    return options(schema, state, convert, convertIfPresent);
+  }
+
   if (schema._flags.presence === "forbidden") return undefined;
   // TODO add required if needed
   return {
@@ -7,8 +23,8 @@ const parser = schema => {
       { type: "boolean" },
       { type: "number" },
       { type: "object" },
-      { type: "string" }
-    ]
+      { type: "string" },
+    ],
   };
 };
 

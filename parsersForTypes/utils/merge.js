@@ -1,12 +1,15 @@
 const deepcopy = require("deepcopy");
 const _ = require("lodash");
-const { retrievePrintedReference } = require("./utils");
+const { retrievePrintedReference } = require("./reference");
 
 const mergeProperties = (property1, property2, state, convert) => {
-  return Object.entries(property2 || {}).reduce((acc, [k, v]) => {
+  const _property1 = deepcopy(property1);
+  const _property2 = deepcopy(property2);
+
+  return Object.entries(_property2 || {}).reduce((acc, [k, v]) => {
     if (!acc[k]) return { ...acc, [k]: v };
     return { ...acc, [k]: merge(acc[k], v, state, convert) };
-  }, property1 || {});
+  }, _property1 || {});
 };
 
 const mergeString = (str1, str2) => {
@@ -75,12 +78,12 @@ const mergeObject = (obj1, obj2, state, convert) => {
       obj2.properties,
       state,
       convert
-    )
+    ),
   };
 
   if (obj1.required || obj2.required) {
     mergedObj.required = [
-      ...new Set([...(obj1.required || []), ...(obj2.required || [])])
+      ...new Set([...(obj1.required || []), ...(obj2.required || [])]),
     ];
   }
   return mergedObj;
@@ -102,8 +105,8 @@ const mergeRef = (obj1, obj2) => {
   return object1;
 };
 
-const wrapInOneOf = obj => ({
-  oneOf: obj.oneOf ? obj.oneOf : [obj]
+const wrapInOneOf = (obj) => ({
+  oneOf: obj.oneOf ? obj.oneOf : [obj],
 });
 
 const merge = (obj1, obj2, state, convert) => {
@@ -158,4 +161,23 @@ const merge = (obj1, obj2, state, convert) => {
   }
 };
 
-module.exports = { merge };
+const mergeDiff = (obj1, obj2) => {
+  if ("object" === typeof obj1 && !(obj1 instanceof Array)) {
+    return Object.entries(obj1).reduce((acc, [k, v]) => {
+      if (k === "required") {
+        return {
+          ...acc,
+          [k]: [...new Set([...(v || []), ...(acc[k] || [])])],
+        };
+      }
+      if (acc[k]) {
+        return { ...acc, [k]: mergeDiff(acc[k], v) };
+      }
+      return acc;
+    }, obj2);
+  } else {
+    return obj1;
+  }
+};
+
+module.exports = { merge, mergeDiff };

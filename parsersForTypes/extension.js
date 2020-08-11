@@ -1,17 +1,30 @@
-const parser = (joiSchema, state, convert) => {
-  let inheritedBase = {};
-  if (
-    joiSchema.__proto__.__proto__ &&
-    joiSchema.__proto__.__proto__.constructor
-  ) {
-    const obj = new joiSchema.__proto__.__proto__.constructor();
-    obj._test = joiSchema._test;
-    obj._tests = joiSchema._tests;
-    obj._flags = joiSchema._flags;
-    obj._inner = joiSchema._inner;
-    inheritedBase = convert(obj, state);
+const inheritedTypes = (obj) =>
+  Object.keys(obj._definition.messages).reduce(
+    (acc, key) => acc.add(key.split(".")[0]),
+    new Set()
+  );
+
+const inferType = (obj) => {
+  const possibleTypes = inheritedTypes(obj);
+  const definition = obj._definition;
+  if (definition) {
+    const rules = definition.rules;
+    if (rules.try && possibleTypes.has("alternatives")) return "alternatives";
+    if (rules.uppercase && possibleTypes.has("string")) return "string";
+    if (rules.keys && possibleTypes.has("object")) return "object";
+    if (rules.sign && possibleTypes.has("number")) return "number";
+    if (rules.encoding && possibleTypes.has("binary")) return "binary";
+    if (rules.items && possibleTypes.has("array")) return "array";
+    if (rules.truthy && possibleTypes.has("boolean")) return "boolean";
+    if (rules.iso && possibleTypes.has("date")) return "date";
+    if (rules.alternative && possibleTypes.has("opt")) return "opt";
+    return "any";
   }
-  return inheritedBase;
+};
+
+const parser = (joiSchema, state, convert) => {
+  joiSchema.type = inferType(joiSchema);
+  return convert(joiSchema, state);
 };
 
 module.exports = parser;

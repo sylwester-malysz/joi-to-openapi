@@ -1,6 +1,9 @@
-const { makeAlternativesFromOptions } = require("./alternatives_utils");
-const { merge } = require("./merge_utils");
-const { getBodyObjKey } = require("./utils");
+const {
+  getBodyObjKey,
+  makeOptions,
+  makeAlternativesFromOptions,
+  merge,
+} = require("./utils");
 const _ = require("lodash");
 
 const deepcopy = require("deepcopy");
@@ -75,13 +78,16 @@ const getRequiredFields = (child) => {
   return required.length ? { required } : null;
 };
 
-const findObjectInScope = (object) => (option) =>
-  option.ref.split(".").reduce((obj, key) => {
+const findObjectInScope = (object) => (option) => {
+  const scopeObj = option.ref.split(".").reduce((obj, key) => {
     if (obj && obj.properties) {
       return obj.properties[key];
     }
     return obj;
   }, deepcopy(object));
+
+  return scopeObj;
+};
 
 const aggregateScopedPartitions = (scope) => ([left, right], obj) => {
   const [inScope, notInScope] = _.partition(
@@ -98,10 +104,37 @@ function needsOptOfPropagation(optList) {
   return optList.length > 0 && optList.some((opt) => opt.options.length > 0);
 }
 
+const overwriteRequired = (obj1, obj2) => {
+  const _obj1 = deepcopy(obj1);
+  const _obj2 = deepcopy(obj2);
+  let required = _obj1.required;
+  if (required) {
+    const allKeys = Object.keys(_obj2.properties);
+    const noRequiredKeys = _.difference(allKeys, _obj2.required || []);
+    const newRequired = _.difference(required, noRequiredKeys);
+    if (newRequired.length > 0) required = newRequired;
+  }
+
+  return { ..._obj1, required };
+};
+
 const parser = (joiSchema, state, convert) => {
-  const child = getChild(joiSchema._inner.children, state, convert);
-  const requiredFields = getRequiredFields(joiSchema._inner.children);
-  const obj = Object.assign({ type: "object" }, child, requiredFields);
+  const child = getChild(joiSchema.$_terms.keys, state, convert);
+  const requiredFields = getRequiredFields(joiSchema.$_terms.keys);
+  let obj = Object.assign({ type: "object" }, child, requiredFields);
+
+  if (joiSchema.$_terms.whens) {
+    const conditionals = joiSchema.$_terms.whens[0];
+    const thennable = convert(conditionals.then, state);
+    const otherwise = convert(conditionals.otherwise, state);
+    obj = makeOptions(
+      convert(conditionals.is, state),
+      merge(overwriteRequired(obj, thennable), thennable, state, convert),
+      merge(overwriteRequired(obj, otherwise), otherwise, state, convert),
+      state,
+      convert
+    );
+  }
 
   if (obj.properties && obj.properties.optOf) {
     const { optOf, ...rest } = obj.properties;
@@ -110,7 +143,6 @@ const parser = (joiSchema, state, convert) => {
       aggregateScopedPartitions(newObj),
       [[], []]
     );
-
     const optionObject = makeAlternativesFromOptions(
       currentScopeOpt,
       newObj,
@@ -143,6 +175,7 @@ const parser = (joiSchema, state, convert) => {
 
     return optionObject;
   }
+
   return obj;
 };
 
