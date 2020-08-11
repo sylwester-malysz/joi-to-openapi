@@ -1,10 +1,12 @@
-const find = require("lodash.find");
+const deepcopy = require("deepcopy");
+
+const isJoi = (obj) => obj.$_root && obj.$_root.isSchema(obj);
 
 const retrieveReference = (joiReference, components) => {
-  if (joiReference.isJoi && joiReference.type == "reference") {
-    const reference = joiReference._flags._internal_ref || "";
+  if (isJoi(joiReference) && joiReference.type == "reference") {
+    const reference = joiReference._flags._ref || "";
     const [componentRef, itemRef] = reference.split(":");
-    return getRef(componentRef, itemRef, components);
+    return deepcopy(getRef(componentRef, itemRef, components));
   }
 
   return undefined;
@@ -50,12 +52,14 @@ const convertIs = (joiObj, valids, state, convert) => {
   if (joiObj) {
     if (joiObj.type === "any" && joiObj._flags.presence !== "forbidden") {
       const validValues = valids ? valids._values : new Set();
+      let converted = { type: "any" };
       if (validValues && validValues.size === 1) {
         const values = Array.from(validValues);
         if (typeof values[0] === "string")
-          return { type: "string", enum: values };
+          converted = { type: "string", enum: values };
       }
-      return { type: "any" };
+      //converted.isRequired = joiObj._flags.presence === "required";
+      return converted;
     }
 
     return convert(joiObj, state);
@@ -100,4 +104,5 @@ module.exports = {
   getBodyObjKey,
   values,
   options,
+  isJoi,
 };

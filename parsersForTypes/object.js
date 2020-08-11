@@ -1,6 +1,7 @@
 const {
   makeAlternativesFromOptions,
-  buildAlt,
+  //buildAlt,
+  makeOptions,
 } = require("./alternatives_utils");
 const { merge } = require("./merge_utils");
 const { getBodyObjKey } = require("./utils");
@@ -104,14 +105,44 @@ function needsOptOfPropagation(optList) {
   return optList.length > 0 && optList.some((opt) => opt.options.length > 0);
 }
 
+const synchRequired = (required, obj) => {
+  if (required) {
+    const allKeys = Object.keys(obj.properties);
+    const noRequiredKeys = _.difference(allKeys, obj.required || []);
+    const newRequired = _.difference(required, noRequiredKeys);
+    if (newRequired.length > 0) return newRequired;
+  }
+
+  return undefined;
+};
+
 const parser = (joiSchema, state, convert) => {
   const child = getChild(joiSchema.$_terms.keys, state, convert);
   const requiredFields = getRequiredFields(joiSchema.$_terms.keys);
   let obj = Object.assign({ type: "object" }, child, requiredFields);
 
   if (joiSchema.$_terms.whens) {
-    const v = joiSchema.$_terms.whens[0];
-    obj = buildAlt(obj, v.is, v.then, v.otherwise, state, convert);
+    const conditionals = joiSchema.$_terms.whens[0];
+    const thennable = convert(conditionals.then, state);
+    const otherwise = convert(conditionals.otherwise, state);
+    let req = obj.required;
+    obj = makeOptions(
+      convert(conditionals.is, state),
+      merge(
+        { ...obj, required: synchRequired(req, thennable) },
+        thennable,
+        state,
+        convert
+      ),
+      merge(
+        { ...obj, required: synchRequired(req, otherwise) },
+        otherwise,
+        state,
+        convert
+      ),
+      state,
+      convert
+    );
   }
 
   if (obj.properties && obj.properties.optOf) {

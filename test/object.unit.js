@@ -10,7 +10,6 @@ chai.use(chaiAsPromised);
 chai.use(sinonChai);
 
 const Joi = require("joi");
-const joiToOpenapi = require("../index");
 
 describe("Joi Object to OpenAPI", () => {
   beforeEach(() => {});
@@ -870,6 +869,8 @@ describe("Joi Object to OpenAPI", () => {
           .allow("")
           .required(),
         timestamp: Joi.string().required(),
+        identifier: Joi.string().required(),
+        device_id: Joi.string().required(),
         body: Joi.object()
           .keys({
             status: Joi.string().valid("on", "off", "pause"),
@@ -951,7 +952,7 @@ describe("Joi Object to OpenAPI", () => {
                 properties: {
                   status: {
                     type: "string",
-                    enum: ["on", "off"],
+                    enum: ["on", "off", "pause"],
                   },
                   stream_direction: {
                     type: "string",
@@ -967,7 +968,39 @@ describe("Joi Object to OpenAPI", () => {
                 type: "string",
               },
             },
-            required: ["from", "timestamp", "body", "identifier", "device_id"],
+            required: ["from", "timestamp", "identifier", "device_id", "body"],
+          },
+          {
+            type: "object",
+            properties: {
+              from: {
+                type: "string",
+              },
+              timestamp: {
+                type: "string",
+              },
+              body: {
+                type: "object",
+                properties: {
+                  status: {
+                    type: "string",
+                    enum: ["on", "off"],
+                  },
+                  stream_direction: {
+                    type: "string",
+                    enum: ["in"],
+                  },
+                },
+                required: ["stream_direction"],
+              },
+              identifier: {
+                type: "string",
+              },
+              device_id: {
+                type: "string",
+              },
+            },
+            required: ["from", "timestamp", "identifier", "device_id", "body"],
           },
         ],
       };
@@ -975,6 +1008,7 @@ describe("Joi Object to OpenAPI", () => {
 
     it("should convert the object in the proper open-api", () => {
       const converted = convert(obj);
+      debugger;
       return expect(converted).deep.equal(expectedObj);
     });
   });

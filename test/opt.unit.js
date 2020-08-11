@@ -23,12 +23,15 @@ const Joi = require("joi")
     rules: {
       alternative: {
         // convert: true,
-        method(alternative) {
-          return this.$_addRule({ name: "alternative", args: { alternative } });
+        method(alternatives) {
+          return this.$_addRule({
+            name: "alternative",
+            args: { alternatives },
+          });
         },
         args: [
           {
-            name: "alternative",
+            name: "alternatives",
             assert: (value) => typeof value === "object",
             message: "must be an object",
           },

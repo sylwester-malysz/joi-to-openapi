@@ -29,7 +29,6 @@ const getMaxItems = (tests) => {
 };
 
 const parser = (joiSchema, state, convert) => {
-  debugger;
   const child = getChild(joiSchema.$_terms.items, state, convert);
   const maxItems = getMaxItems(joiSchema._rules);
   const minItems = getMinItems(joiSchema._rules);

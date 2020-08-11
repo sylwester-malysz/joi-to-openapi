@@ -10,14 +10,14 @@ const dateParser = require("./parsersForTypes/date");
 const routeParser = require("./parsersForTypes/route");
 const refParser = require("./parsersForTypes/reference");
 const extensionParser = require("./parsersForTypes/extension");
-const optionsParser = require("./parsersForTypes/options");
+const optionsParser = require("./parsersForTypes/opt");
 const anyParser = require("./parsersForTypes/any");
-const { values } = require("./parsersForTypes/utils");
-
-const isJoi = (obj) => obj.$_root && obj.$_root.isSchema(obj);
+const { values, isJoi } = require("./parsersForTypes/utils");
 
 const universalDecorator = (joiSchema) => {
   const universalParams = {};
+
+  if (!joiSchema._flags) return universalParams;
 
   if (joiSchema._valids && joiSchema._valids.has(null)) {
     universalParams.nullable = true;
@@ -56,9 +56,9 @@ const convertAux = (joiSchema, state) => {
   if (!joiSchema) {
     throw new Error("No schema was passed");
   }
-
-  if (!isJoi(joiSchema))
+  if (!isJoi(joiSchema)) {
     throw new TypeError("Passed schema does not appear to be a joi schema.");
+  }
 
   const type = joiSchema.type;
   const newState = {

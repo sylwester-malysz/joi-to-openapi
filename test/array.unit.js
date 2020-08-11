@@ -10,7 +10,6 @@ chai.use(chaiAsPromised);
 chai.use(sinonChai);
 
 const Joi = require("joi");
-const { property } = require("lodash");
 
 describe("Joi Array to OpenAPI", () => {
   beforeEach(() => {});

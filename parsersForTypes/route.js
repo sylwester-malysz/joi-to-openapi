@@ -1,5 +1,5 @@
 const joi = require("joi");
-const { retrieveReference } = require("./utils");
+const { retrieveReference, isJoi } = require("./utils");
 
 const initIfUndefined = (obj, key, defaultValue) => {
   obj[key] = obj[key] || defaultValue;
@@ -53,11 +53,11 @@ const wrapInBrackets = (str) =>
 
 const getPaths = (paths, state, convert) => {
   const mapObject = (objToMap) =>
-    objToMap.isJoi
+    isJoi(objToMap)
       ? convert(objToMap, state)
       : Object.keys(objToMap || {}).reduce((obj, item) => {
           let convertItem = objToMap[item] || {};
-          if (!convertItem.isJoi) convertItem = joi.compile(convertItem);
+          if (!isJoi(convertItem)) convertItem = joi.compile(convertItem);
           return Object.assign(obj, {
             [item]: { schema: convert(convertItem, state) },
           });
@@ -146,7 +146,7 @@ const getComponentItem = (components, state, convert) => {
   const componentToOpenAPI = {};
   for (const i in components) {
     let convertItem = components[i] || {};
-    if (!convertItem.isJoi) convertItem = joi.compile(convertItem);
+    if (!isJoi(convertItem)) convertItem = joi.compile(convertItem);
     componentToOpenAPI[i] = convert(convertItem, { ...state });
   }
   return componentToOpenAPI;
@@ -159,7 +159,7 @@ const getComponentWithContentType = (components, state, convert) => {
     let contentTypeSet = {};
     for (const j in convertSet) {
       let convertItem = convertSet[j] || {};
-      if (!convertItem.isJoi) convertItem = joi.compile(convertItem);
+      if (!isJoi(convertItem)) convertItem = joi.compile(convertItem);
       contentTypeSet = { description: "", content: {} };
       contentTypeSet["content"][j] = { schema: convert(convertItem, state) };
     }
@@ -190,11 +190,11 @@ const getComponents = (components, state, convert) => {
 
 const parser = (joiSchema, s, convert) => {
   const versionedPaths = Object.entries(
-    groupPathsByVersions(joiSchema._settings.routing.paths)
+    groupPathsByVersions(joiSchema._flags.routing.paths)
   );
   const state = {
     ...s,
-    components: { ...(joiSchema._settings.components || {}) },
+    components: { ...(joiSchema._flags.components || {}) },
   };
   const routing = {};
   const emptyInfo = {
@@ -212,14 +212,10 @@ const parser = (joiSchema, s, convert) => {
     },
   };
   const components = getComponents(
-    joiSchema._settings.components || {},
+    joiSchema._flags.components || {},
     state,
     convert
   );
-  let custom = {};
-  if (joiSchema._flags.customize) {
-    custom = joiSchema._flags.customize((schema) => convert(schema, state));
-  }
 
   for (let i = 0, len = versionedPaths.length; i < len; i++) {
     const version = versionedPaths[i][0];
@@ -230,11 +226,6 @@ const parser = (joiSchema, s, convert) => {
       paths,
       components,
     };
-
-    if (custom) {
-      routTmp = { ...routTmp, ...custom };
-    }
-
     routing[version] = routTmp;
   }
 
