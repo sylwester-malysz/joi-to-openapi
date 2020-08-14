@@ -13,7 +13,7 @@ const mergeProperties = (property1, property2, state, convert) => {
 };
 
 const mergeString = (str1, str2) => {
-  if (!str2) str1;
+  if (!str2) return str1;
   if (str1.enum || str2.enum)
     str1.enum = [...new Set([...(str1.enum || []), ...(str2.enum || [])])];
 
@@ -27,7 +27,7 @@ const mergeString = (str1, str2) => {
 };
 
 const mergeInteger = (int1, int2) => {
-  if (!int2) int1;
+  if (!int2) return int1;
 
   if (
     typeof int1.minimum !== "undefined" ||
@@ -58,7 +58,7 @@ const mergeInteger = (int1, int2) => {
 };
 
 const mergeBoolean = (bool1, bool2) => {
-  if (!bool2) bool1;
+  if (!bool2) return bool1;
 
   if (bool1.nullable || bool2.nullable) {
     bool1.nullable = bool1.nullable || bool2.nullable;
@@ -68,8 +68,8 @@ const mergeBoolean = (bool1, bool2) => {
 };
 
 const mergeObject = (obj1, obj2, state, convert) => {
-  if (!obj2) obj1;
-  if (!obj1) obj2;
+  if (!obj2) return obj1;
+  if (!obj1) return obj2;
 
   const mergedObj = {
     type: "object",
@@ -90,19 +90,18 @@ const mergeObject = (obj1, obj2, state, convert) => {
 };
 
 const mergeOneOf = (obj1, obj2) => {
-  if (!obj2) obj1;
-  if (!obj1) obj2;
+  if (!obj2) return obj1;
+  if (!obj1) return obj2;
 
   return { oneOf: [...(obj1.oneOf || []), ...(obj2.oneOf || [])] };
 };
 
 const mergeRef = (obj1, obj2) => {
-  if (!obj2) obj1;
-  if (!obj1) obj2;
+  if (!obj2) return obj1;
+  if (!obj1) return obj2;
+  if (obj1.$ref != obj2.$ref) new Error("different $ref - cannot merge");
 
-  if (object1.$ref != object2.$ref) new Error("different $ref - cannot merge");
-
-  return object1;
+  return obj1;
 };
 
 const wrapInOneOf = (obj) => ({
