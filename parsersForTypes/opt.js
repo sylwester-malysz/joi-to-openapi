@@ -5,9 +5,10 @@ const createOneOfNoDuplicates = (objs, state, convert) => {
 
   const { store } = objs.reduce(({store, cache},value) => {
     const openapiObj =  convert(value, state)
-    if(!cache[openapiObj]) {
+    const key = JSON.stringify(openapiObj)
+    if(!cache[key]) {
       store.push(openapiObj)
-      cache[JSON.stringify(openapiObj)] = true
+      cache[key] = true
     }
     return {store, cache}
   }, { store: [], cache : {}})

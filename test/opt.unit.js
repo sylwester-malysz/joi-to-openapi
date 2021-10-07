@@ -170,4 +170,38 @@ describe("Joi Options to OpenAPI", () => {
       expect(converted).deep.equal(expectedObj);
     });
   });
+
+  describe("When two identical objects are given", () => {
+    let ext;
+    let expectedObj;
+    let obj;
+    beforeEach(() => {
+      ext = Joi.extend((joi) => ({
+        base: joi.opt().alternative({
+          1: joi.object().keys({ sun: joi.string().required() }),
+          2: joi.object().keys({ sun: joi.string().required() }),
+        }),
+        type: "solarSystem",
+      }));
+
+      obj = ext.solarSystem();
+
+      expectedObj = {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              sun: {
+                type: "string",
+              },
+            },
+            required: ["sun"],
+          }
+        ],
+      };
+    });
+
+    it("should be converted in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
 });
