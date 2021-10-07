@@ -1,10 +1,24 @@
 const find = require("lodash.find");
 
+
+const createOneOfNoDuplicates = (objs, state, convert) => {
+
+  const { store } = objs.reduce(({store, cache},value) => {
+    const openapiObj =  convert(value, state)
+    if(!cache[openapiObj]) {
+      store.push(openapiObj)
+      cache[JSON.stringify(openapiObj)] = true
+    }
+    return {store, cache}
+  }, { store: [], cache : {}})
+
+
+  return store
+}
+
 const getOneOfSchemas = (matches, state, convert) => ({
   oneOf: [
-    ...matches.map((allowedType) => {
-      return convert(allowedType, state);
-    }),
+    ...createOneOfNoDuplicates(matches, state, convert)
   ],
 });
 
