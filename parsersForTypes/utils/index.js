@@ -6,6 +6,9 @@ const { isJoi } = require("./joi");
 
 const getBodyObjKey = (condition) => {
   if ("oneOf" in condition) return { oneOf: condition.oneOf };
+  if ("anyOf" in condition) return { anyOf: condition.anyOf };
+  if ("allOf" in condition) return { allOf: condition.allOf };
+
   if (condition.type === "object") {
     const { isRequired, ...rest } = condition;
     return rest;

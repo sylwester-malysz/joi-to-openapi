@@ -168,7 +168,7 @@ describe("Joi Object to OpenAPI", () => {
                 pattern: "^([abcdABCD0-9*#pP])+$",
               },
               date: {
-                oneOf: [
+                anyOf: [
                   {
                     type: "string",
                     nullable: true,
@@ -199,7 +199,7 @@ describe("Joi Object to OpenAPI", () => {
                 pattern: "^([abcdABCD0-9*#pP])+$",
               },
               date: {
-                oneOf: [
+                anyOf: [
                   {
                     type: "string",
                     nullable: true,
@@ -510,7 +510,7 @@ describe("Joi Object to OpenAPI", () => {
                 type: "object",
                 properties: {
                   struct: {
-                    oneOf: [
+                    anyOf: [
                       { type: "string" },
                       { type: "number", format: "float" },
                     ],
@@ -715,7 +715,7 @@ describe("Joi Object to OpenAPI", () => {
             type: "object",
             properties: {
               struct: {
-                oneOf: [
+                anyOf: [
                   { type: "string" },
                   { type: "number", format: "float" },
                 ],
@@ -762,7 +762,7 @@ describe("Joi Object to OpenAPI", () => {
             type: "object",
             properties: {
               struct: {
-                oneOf: [
+                anyOf: [
                   { type: "string" },
                   { type: "number", format: "float" },
                 ],
@@ -815,7 +815,165 @@ describe("Joi Object to OpenAPI", () => {
                 type: "object",
                 properties: {
                   struct: {
+                    anyOf: [
+                      { type: "string" },
+                      { type: "number", format: "float" },
+                    ],
+                  },
+                },
+                required: ["struct"],
+              },
+            },
+            required: ["someKey", "embeed"],
+          },
+          {
+            type: "object",
+            properties: {
+              sequence: {
+                type: "string",
+              },
+              embeed: {
+                type: "object",
+                properties: {
+                  struct: {
                     oneOf: [
+                      { type: "array" },
+                      { type: "boolean" },
+                      { type: "number" },
+                      { type: "object" },
+                      { type: "string" },
+                    ],
+                  },
+                },
+              },
+            },
+            required: ["embeed"],
+          },
+        ],
+      };
+    });
+
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      expect(converted).deep.equal(expectedObj);
+    });
+  });
+
+  describe("When .when is applied 'one' alternative", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object({
+        someKey: Joi.string().allow(null),
+        sequence: Joi.string(),
+        embeed: Joi.object({
+          struct: Joi.when(Joi.ref("someKey"), {
+            is: Joi.exist(),
+            then: Joi.alternatives()
+              .try(Joi.string(), Joi.number()).match("one")
+              .required(),
+            otherwise: Joi.optional(),
+          }),
+        }).required(),
+      });
+
+      expectedObj = {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              someKey: {
+                type: "string",
+                nullable: true,
+              },
+              sequence: {
+                type: "string",
+              },
+              embeed: {
+                type: "object",
+                properties: {
+                  struct: {
+                    oneOf: [
+                      { type: "string" },
+                      { type: "number", format: "float" },
+                    ],
+                  },
+                },
+                required: ["struct"],
+              },
+            },
+            required: ["someKey", "embeed"],
+          },
+          {
+            type: "object",
+            properties: {
+              sequence: {
+                type: "string",
+              },
+              embeed: {
+                type: "object",
+                properties: {
+                  struct: {
+                    oneOf: [
+                      { type: "array" },
+                      { type: "boolean" },
+                      { type: "number" },
+                      { type: "object" },
+                      { type: "string" },
+                    ],
+                  },
+                },
+              },
+            },
+            required: ["embeed"],
+          },
+        ],
+      };
+    });
+
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      expect(converted).deep.equal(expectedObj);
+    });
+  });
+
+  describe("When .when is applied 'all' alternative", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object({
+        someKey: Joi.string().allow(null),
+        sequence: Joi.string(),
+        embeed: Joi.object({
+          struct: Joi.when(Joi.ref("someKey"), {
+            is: Joi.exist(),
+            then: Joi.alternatives()
+              .try(Joi.string(), Joi.number()).match("all")
+              .required(),
+            otherwise: Joi.optional(),
+          }),
+        }).required(),
+      });
+
+      expectedObj = {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              someKey: {
+                type: "string",
+                nullable: true,
+              },
+              sequence: {
+                type: "string",
+              },
+              embeed: {
+                type: "object",
+                properties: {
+                  struct: {
+                    allOf: [
                       { type: "string" },
                       { type: "number", format: "float" },
                     ],

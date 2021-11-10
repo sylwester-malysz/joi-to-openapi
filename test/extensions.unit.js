@@ -160,7 +160,7 @@ describe("Joi Extensions to OpenAPI", () => {
       }));
       obj = joiExtension.newExtension();
       expectedObj = {
-        oneOf: [
+        anyOf: [
           {
             type: "object",
             properties: {
@@ -357,7 +357,7 @@ describe("Joi Extensions to OpenAPI", () => {
       expectedObj = {
         type: "array",
         items: {
-          oneOf: [
+          anyOf: [
             {
               $ref: "#/components/schemas/1",
             },

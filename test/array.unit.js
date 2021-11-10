@@ -45,7 +45,7 @@ describe("Joi Array to OpenAPI", () => {
       expectedObj = {
         type: "array",
         items: {
-          oneOf: [
+          anyOf: [
             {
               type: "string",
               enum: ["a", "b"],

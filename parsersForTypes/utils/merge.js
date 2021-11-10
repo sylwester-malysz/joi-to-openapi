@@ -89,12 +89,21 @@ const mergeObject = (obj1, obj2, state, convert) => {
   return mergedObj;
 };
 
-const mergeOneOf = (obj1, obj2) => {
+const mergeAlternative = (obj1, obj2, mode = "any") => {
   if (!obj2) return obj1;
   if (!obj1) return obj2;
 
-  return { oneOf: [...(obj1.oneOf || []), ...(obj2.oneOf || [])] };
+  const key = `${mode}Of`
+
+  return { [key]: [...(obj1[key] || []), ...(obj2[key] || [])] };
 };
+
+const mergeOneOf = (obj1, obj2) => mergeAlternative(obj1, obj2, "one")
+
+const mergeAnyOf = (obj1, obj2) => mergeAlternative(obj1, obj2)
+
+const mergeAllOf = (obj1, obj2) => mergeAlternative(obj1, obj2, "all")
+
 
 const mergeRef = (obj1, obj2) => {
   if (!obj2) return obj1;
@@ -104,9 +113,13 @@ const mergeRef = (obj1, obj2) => {
   return obj1;
 };
 
-const wrapInOneOf = (obj) => ({
-  oneOf: obj.oneOf ? obj.oneOf : [obj],
-});
+const wrapAlternative = (obj,mode = "any") => { 
+  const key = `${mode}Of`
+  return {
+    [key]: obj[key] ? obj[key] : [obj],
+  }
+}
+
 
 const merge = (obj1, obj2, state, convert) => {
   if (_.isEmpty(obj1)) return obj2;
@@ -114,9 +127,18 @@ const merge = (obj1, obj2, state, convert) => {
 
   let object1 = deepcopy(obj1);
   let object2 = deepcopy(obj2);
+
   if (object1.oneOf || object2.oneOf) {
-    object1 = wrapInOneOf(object1);
-    object2 = wrapInOneOf(object2);
+    object1 = wrapAlternative(object1,"one");
+    object2 = wrapAlternative(object2,"one");
+  }
+  if (object1.anyOf || object2.anyOf) {
+    object1 = wrapAlternative(object1);
+    object2 = wrapAlternative(object2);
+  }
+  if (object1.allOf || object2.allOf) {
+    object1 = wrapAlternative(object1,"all");
+    object2 = wrapAlternative(object2,"all");
   }
   if (object1.$ref) {
     object1 = convert(
@@ -152,6 +174,12 @@ const merge = (obj1, obj2, state, convert) => {
     default:
       if (object1.oneOf && object2.oneOf) {
         return mergeOneOf(object1, object2);
+      }
+      if (object1.anyOf && object2.anyOf) {
+        return mergeAnyOf(object1, object2);
+      }
+      if (object1.allOf && object2.allOf) {
+        return mergeAllOf(object1, object2);
       }
       if (object1.$ref && object2.$ref) {
         return mergeRef(object1, object2);

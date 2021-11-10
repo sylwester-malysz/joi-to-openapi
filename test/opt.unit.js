@@ -121,7 +121,7 @@ describe("Joi Options to OpenAPI", () => {
                             type: "string",
                           },
                           struct: {
-                            oneOf: [
+                            anyOf: [
                               {
                                 type: "string",
                               },

@@ -39,8 +39,9 @@ const mergeObjectInOption = (obj2Merge, state, convert) => (obj) => {
   };
 };
 
-const getOneOfSchemas = (matches, state, convert) =>
-  matches.reduce(
+const getAlternativeSchemas = (matches, mode, state, convert) => {
+  const alternativeKey = `${mode}Of`
+  return matches.reduce(
     (acc, match) => {
       const { inheritedOptOf, ...rest } = convert(match.schema, state);
       if (inheritedOptOf)
@@ -48,11 +49,13 @@ const getOneOfSchemas = (matches, state, convert) =>
           ...(acc.inheritedOptOf || []),
           ...inheritedOptOf.map(mergeObjectInOption(rest, state, convert)),
         ];
-      else acc.oneOf = [...acc.oneOf, rest];
+      else acc[alternativeKey] = [...acc[alternativeKey], rest];
       return acc;
     },
-    { oneOf: [] }
+    { [alternativeKey]: [] }
   );
+}
+
 
 const parser = (joiSchema, state, convert) => {
   if (
@@ -70,7 +73,7 @@ const parser = (joiSchema, state, convert) => {
       convert
     );
   }
-  return getOneOfSchemas(joiSchema.$_terms.matches, state, convert);
+  return getAlternativeSchemas(joiSchema.$_terms.matches, joiSchema.$_getFlag("match") || "any", state, convert);
 };
 
 module.exports = parser;

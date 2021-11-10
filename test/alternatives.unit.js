@@ -14,6 +14,58 @@ const Joi = require("joi");
 describe("Joi Alternatives to OpenAPI", () => {
   beforeEach(() => {});
 
+  describe("When alternatives try is used with mode one", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.alternatives().try(Joi.string(), Joi.number()).match('one');
+
+      expectedObj = {
+        oneOf: [
+          {
+            type: "string",
+          },
+          {
+            type: "number",
+            format: "float",
+          },
+        ],
+      };
+    });
+
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      return expect(converted).deep.equal(expectedObj);
+    });
+  });
+
+  describe("When alternatives try is used with mode all", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.alternatives().try(Joi.string(), Joi.number()).match('all');
+
+      expectedObj = {
+        allOf: [
+          {
+            type: "string",
+          },
+          {
+            type: "number",
+            format: "float",
+          },
+        ],
+      };
+    });
+
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      return expect(converted).deep.equal(expectedObj);
+    });
+  });
+
   describe("When alternatives try is used", () => {
     let obj;
     let expectedObj;
@@ -22,7 +74,7 @@ describe("Joi Alternatives to OpenAPI", () => {
       obj = Joi.alternatives().try(Joi.string(), Joi.number());
 
       expectedObj = {
-        oneOf: [
+        anyOf: [
           {
             type: "string",
           },
@@ -83,7 +135,7 @@ describe("Joi Alternatives to OpenAPI", () => {
                 nullable: true,
               },
               body: {
-                oneOf: [
+                anyOf: [
                   {
                     type: "object",
                     properties: {
@@ -110,7 +162,7 @@ describe("Joi Alternatives to OpenAPI", () => {
                         type: "object",
                         properties: {
                           struct: {
-                            oneOf: [
+                            anyOf: [
                               { type: "string" },
                               { type: "number", format: "float" },
                             ],
@@ -130,7 +182,7 @@ describe("Joi Alternatives to OpenAPI", () => {
             type: "object",
             properties: {
               body: {
-                oneOf: [
+                anyOf: [
                   {
                     type: "object",
                     properties: {
