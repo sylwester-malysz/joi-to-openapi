@@ -14,7 +14,7 @@ const optionsParser = require("./parsersForTypes/opt");
 const anyParser = require("./parsersForTypes/any");
 const { values, isJoi } = require("./parsersForTypes/utils");
 
-const universalDecorator = (joiSchema) => {
+const universalDecorator = joiSchema => {
   const universalParams = {};
 
   if (!joiSchema._flags) return universalParams;
@@ -40,8 +40,7 @@ const universalDecorator = (joiSchema) => {
     universalParams.default = joiSchema._flags.default;
   }
 
-  const exampleLength =
-    (joiSchema.$_terms.examples && joiSchema.$_terms.examples.length) || 0;
+  const exampleLength = (joiSchema.$_terms.examples && joiSchema.$_terms.examples.length) || 0;
   if (exampleLength > 0) {
     if (exampleLength === 1) {
       [universalParams.example] = joiSchema.$_terms.examples;
@@ -60,11 +59,11 @@ const convertAux = (joiSchema, state) => {
     throw new TypeError("Passed schema does not appear to be a joi schema.");
   }
 
-  const type = joiSchema.type;
+  const { type } = joiSchema;
   const newState = {
     ...state,
     isRoot: typeof state.isRoot === "undefined",
-    originalSchema: state.originalSchema || joiSchema,
+    originalSchema: state.originalSchema || joiSchema
   };
   const decorator = universalDecorator(joiSchema);
   let swaggerSchema;
@@ -107,7 +106,7 @@ const convertAux = (joiSchema, state) => {
       if (decorator.nullable) {
         delete decorator.nullable;
         swaggerSchema = {
-          oneOf: [swaggerSchema, { nullable: true }],
+          oneOf: [swaggerSchema, { nullable: true }]
         };
       }
       break;

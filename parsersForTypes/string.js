@@ -1,9 +1,9 @@
+const find = require("lodash.find");
 const { options } = require("./utils");
 
 /* eslint-disable no-underscore-dangle */
-const find = require("lodash.find");
 
-const getFormat = (tests) => {
+const getFormat = tests => {
   if (find(tests, { name: "guid" })) {
     return { format: "uuid" };
   }
@@ -19,21 +19,21 @@ const getFormat = (tests) => {
   return null;
 };
 
-const getLength = (tests) => {
+const getLength = tests => {
   const length = find(tests, { name: "length" });
   return length ? { length: length.args.limit } : null;
 };
-const getMinLength = (tests) => {
+const getMinLength = tests => {
   const min = find(tests, { name: "min" });
   return min ? { minLength: min.args.limit } : null;
 };
 
-const getMaxLength = (tests) => {
+const getMaxLength = tests => {
   const max = find(tests, { name: "max" });
   return max ? { maxLength: max.args.limit } : null;
 };
 
-const getPattern = (tests) => {
+const getPattern = tests => {
   const p = find(tests, { name: "pattern" });
   return p ? { pattern: p.args.regex.source } : null;
 };
@@ -63,14 +63,14 @@ const parser = (joiSchema, state, convert) => {
   const minLength = getMinLength(rules);
   const len = getLength(rules);
   const pattern = getPattern(rules);
-  return Object.assign(
-    { type: "string" },
-    format,
-    maxLength,
-    minLength,
-    pattern,
-    len
-  );
+  return {
+    type: "string",
+    ...format,
+    ...maxLength,
+    ...minLength,
+    ...pattern,
+    ...len
+  };
 };
 
 module.exports = parser;

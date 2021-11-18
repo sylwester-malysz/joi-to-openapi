@@ -17,11 +17,9 @@ const mergeString = (str1, str2) => {
   if (str1.enum || str2.enum)
     str1.enum = [...new Set([...(str1.enum || []), ...(str2.enum || [])])];
 
-  if (str1.nullable || str2.nullable)
-    str1.nullable = str1.nullable || str2.nullable;
+  if (str1.nullable || str2.nullable) str1.nullable = str1.nullable || str2.nullable;
 
-  if (str1.format !== str2.format)
-    throw new Error("cannot merge different formats");
+  if (str1.format !== str2.format) throw new Error("cannot merge different formats");
 
   return str1;
 };
@@ -29,21 +27,12 @@ const mergeString = (str1, str2) => {
 const mergeInteger = (int1, int2) => {
   if (!int2) return int1;
 
-  if (
-    typeof int1.minimum !== "undefined" ||
-    typeof int2.minimum !== "undefined"
-  ) {
+  if (typeof int1.minimum !== "undefined" || typeof int2.minimum !== "undefined") {
     int1.minimum = Math.min(int1.minimum || Infinity, int2.minimum || Infinity);
   }
 
-  if (
-    typeof int1.maximum !== "undefined" ||
-    typeof int2.maximum !== "undefined"
-  ) {
-    int1.maximum = Math.min(
-      int1.maximum || -Infinity,
-      int2.maximum || -Infinity
-    );
+  if (typeof int1.maximum !== "undefined" || typeof int2.maximum !== "undefined") {
+    int1.maximum = Math.min(int1.maximum || -Infinity, int2.maximum || -Infinity);
   }
 
   if (int1.nullable || int2.nullable) {
@@ -73,18 +62,11 @@ const mergeObject = (obj1, obj2, state, convert) => {
 
   const mergedObj = {
     type: "object",
-    properties: mergeProperties(
-      obj1.properties,
-      obj2.properties,
-      state,
-      convert
-    ),
+    properties: mergeProperties(obj1.properties, obj2.properties, state, convert)
   };
 
   if (obj1.required || obj2.required) {
-    mergedObj.required = [
-      ...new Set([...(obj1.required || []), ...(obj2.required || [])]),
-    ];
+    mergedObj.required = [...new Set([...(obj1.required || []), ...(obj2.required || [])])];
   }
   return mergedObj;
 };
@@ -93,35 +75,33 @@ const mergeAlternative = (obj1, obj2, mode = "any") => {
   if (!obj2) return obj1;
   if (!obj1) return obj2;
 
-  const key = `${mode}Of`
+  const key = `${mode}Of`;
 
   return { [key]: [...(obj1[key] || []), ...(obj2[key] || [])] };
 };
 
-const mergeOneOf = (obj1, obj2) => mergeAlternative(obj1, obj2, "one")
+const mergeOneOf = (obj1, obj2) => mergeAlternative(obj1, obj2, "one");
 
-const mergeAnyOf = (obj1, obj2) => mergeAlternative(obj1, obj2)
+const mergeAnyOf = (obj1, obj2) => mergeAlternative(obj1, obj2);
 
-const mergeAllOf = (obj1, obj2) => mergeAlternative(obj1, obj2, "all")
-
+const mergeAllOf = (obj1, obj2) => mergeAlternative(obj1, obj2, "all");
 
 const mergeRef = (obj1, obj2) => {
   if (!obj2) return obj1;
   if (!obj1) return obj2;
-  if (obj1.$ref != obj2.$ref) new Error("different $ref - cannot merge");
+  if (obj1.$ref !== obj2.$ref) throw new Error("different $ref - cannot merge");
 
   return obj1;
 };
 
-const wrapAlternative = (obj,mode = "any") => { 
-  const key = `${mode}Of`
+const wrapAlternative = (obj, mode = "any") => {
+  const key = `${mode}Of`;
   return {
-    [key]: obj[key] ? obj[key] : [obj],
-  }
-}
+    [key]: obj[key] ? obj[key] : [obj]
+  };
+};
 
-
-const merge = (obj1, obj2, state, convert) => {
+const merge = (obj1, obj2, state, convert = a => a) => {
   if (_.isEmpty(obj1)) return obj2;
   if (_.isEmpty(obj2)) return obj1;
 
@@ -129,36 +109,27 @@ const merge = (obj1, obj2, state, convert) => {
   let object2 = deepcopy(obj2);
 
   if (object1.oneOf || object2.oneOf) {
-    object1 = wrapAlternative(object1,"one");
-    object2 = wrapAlternative(object2,"one");
+    object1 = wrapAlternative(object1, "one");
+    object2 = wrapAlternative(object2, "one");
   }
   if (object1.anyOf || object2.anyOf) {
     object1 = wrapAlternative(object1);
     object2 = wrapAlternative(object2);
   }
   if (object1.allOf || object2.allOf) {
-    object1 = wrapAlternative(object1,"all");
-    object2 = wrapAlternative(object2,"all");
+    object1 = wrapAlternative(object1, "all");
+    object2 = wrapAlternative(object2, "all");
   }
   if (object1.$ref) {
-    object1 = convert(
-      retrievePrintedReference(object1, state.components),
-      state
-    );
+    object1 = convert(retrievePrintedReference(object1, state.components), state);
   }
   if (object2.$ref) {
-    object2 = convert(
-      retrievePrintedReference(object2, state.components),
-      state
-    );
+    object2 = convert(retrievePrintedReference(object2, state.components), state);
   }
 
   if (object1.type !== object2.type)
     throw new Error(
-      "cannot merge different types;\n" +
-        JSON.stringify(object1) +
-        ";\n" +
-        JSON.stringify(object2)
+      `cannot merge different types;\n${JSON.stringify(object1)};\n${JSON.stringify(object2)}`
     );
   switch (object1.type) {
     case "object":
@@ -189,12 +160,12 @@ const merge = (obj1, obj2, state, convert) => {
 };
 
 const mergeDiff = (obj1, obj2) => {
-  if ("object" === typeof obj1 && !(obj1 instanceof Array)) {
+  if (typeof obj1 === "object" && !(obj1 instanceof Array)) {
     return Object.entries(obj1).reduce((acc, [k, v]) => {
       if (k === "required") {
         return {
           ...acc,
-          [k]: [...new Set([...(v || []), ...(acc[k] || [])])],
+          [k]: [...new Set([...(v || []), ...(acc[k] || [])])]
         };
       }
       if (acc[k]) {
@@ -202,9 +173,8 @@ const mergeDiff = (obj1, obj2) => {
       }
       return acc;
     }, obj2);
-  } else {
-    return obj1;
   }
+  return obj1;
 };
 
 module.exports = { merge, mergeDiff };

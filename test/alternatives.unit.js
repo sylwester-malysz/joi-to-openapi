@@ -1,6 +1,7 @@
 const chai = require("chai");
 
 const { expect } = chai;
+const Joi = require("joi");
 
 const chaiAsPromised = require("chai-as-promised");
 const sinonChai = require("sinon-chai");
@@ -8,8 +9,6 @@ const { convert } = require("../index");
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
-
-const Joi = require("joi");
 
 describe("Joi Alternatives to OpenAPI", () => {
   beforeEach(() => {});
@@ -19,7 +18,7 @@ describe("Joi Alternatives to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      obj = Joi.alternatives().try(Joi.string(), Joi.number()).match('one');
+      obj = Joi.alternatives().try(Joi.string(), Joi.number()).match("one");
 
       expectedObj = {
         oneOf: [
@@ -45,7 +44,7 @@ describe("Joi Alternatives to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      obj = Joi.alternatives().try(Joi.string(), Joi.number()).match('all');
+      obj = Joi.alternatives().try(Joi.string(), Joi.number()).match("all");
 
       expectedObj = {
         allOf: [
@@ -102,9 +101,7 @@ describe("Joi Alternatives to OpenAPI", () => {
         embeed: Joi.object({
           struct: Joi.when(Joi.ref("someKey"), {
             is: Joi.exist(),
-            then: Joi.alternatives()
-              .try(Joi.string(), Joi.number())
-              .required(),
+            then: Joi.alternatives().try(Joi.string(), Joi.number()).required(),
             otherwise: Joi.forbidden(),
           }),
         }).required(),
