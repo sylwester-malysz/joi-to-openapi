@@ -176,7 +176,7 @@ const handleOptionalFormObject = (obj, state, convert) => {
   return obj;
 };
 
-const buildNandsAlternatives = (nands, parsedObject, state) => {
+const buildNandsAlternativesAux = (nands, parsedObject, state) => {
   const notAllawedRealations = computedNotAllowedRelation(nands);
 
   return [...notAllawedRealations].reduce((acc, notAllowedSet) => {
@@ -188,6 +188,16 @@ const buildNandsAlternatives = (nands, parsedObject, state) => {
       )
     ];
   }, []);
+};
+
+const buildNandsAlternatives = (nands, parsedObject, state) => {
+  if (parsedObject.oneOf) {
+    return parsedObject.oneOf.reduce(
+      (acc, obj) => [...acc, ...buildNandsAlternativesAux(nands, obj, state)],
+      []
+    );
+  }
+  return buildNandsAlternativesAux(nands, parsedObject, state);
 };
 
 const parserAux = (joiSchema, state, convert) => {

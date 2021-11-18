@@ -281,6 +281,130 @@ describe("Joi Object to OpenAPI", () => {
       it("should convert the object in the proper open-api", () =>
         expect(convert(obj)).deep.equal(expectedObj));
     });
+
+    describe("When nand is applied to an object with one conditional", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = Joi.object()
+          .keys({
+            digit: Joi.string().regex(/^([abcdABCD0-9*#pP])+$/),
+            date: Joi.alternatives(Joi.string().allow("").allow(null), Joi.object().unknown()),
+            sequence: Joi.number().integer(),
+            duration: Joi.when("method", {
+              is: "in",
+              then: Joi.number().integer().required(),
+              otherwise: Joi.forbidden()
+            }),
+            method: Joi.string().valid("in").optional()
+          })
+          .nand("digit", "sequence");
+        expectedObj = {
+          oneOf: [
+            {
+              type: "object",
+              properties: {
+                date: {
+                  anyOf: [
+                    {
+                      type: "string",
+                      nullable: true
+                    },
+                    {
+                      type: "object"
+                    }
+                  ]
+                },
+                sequence: {
+                  type: "integer"
+                },
+                duration: {
+                  type: "integer"
+                },
+                method: {
+                  type: "string",
+                  enum: ["in"]
+                }
+              },
+              required: ["method", "duration"]
+            },
+            {
+              type: "object",
+              properties: {
+                digit: {
+                  type: "string",
+                  pattern: "^([abcdABCD0-9*#pP])+$"
+                },
+                date: {
+                  anyOf: [
+                    {
+                      type: "string",
+                      nullable: true
+                    },
+                    {
+                      type: "object"
+                    }
+                  ]
+                },
+                duration: {
+                  type: "integer"
+                },
+                method: {
+                  type: "string",
+                  enum: ["in"]
+                }
+              },
+              required: ["method", "duration"]
+            },
+            {
+              type: "object",
+              properties: {
+                date: {
+                  anyOf: [
+                    {
+                      type: "string",
+                      nullable: true
+                    },
+                    {
+                      type: "object"
+                    }
+                  ]
+                },
+                sequence: {
+                  type: "integer"
+                }
+              }
+            },
+            {
+              type: "object",
+              properties: {
+                digit: {
+                  type: "string",
+                  pattern: "^([abcdABCD0-9*#pP])+$"
+                },
+                date: {
+                  anyOf: [
+                    {
+                      type: "string",
+                      nullable: true
+                    },
+                    {
+                      type: "object"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        };
+      });
+
+      it("should convert the object in the proper open-api", () => {
+        const converted = convert(obj);
+        return expect(converted).deep.equal(expectedObj);
+      });
+    });
   });
 
   describe("When an object is given with strings keys", () => {

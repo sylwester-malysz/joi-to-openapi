@@ -10,7 +10,7 @@ const { diff } = require("./difference");
 Array.prototype.equals = function (lst) {
   const [head, ...tail] = this;
   const [head1, ...tail1] = lst;
-  if (tail.length === 0 && tail1.length == 0) return head === head1;
+  if (tail.length === 0 && tail1.length === 0) return head === head1;
   return head === head1 && tail.equals(tail1);
 };
 
@@ -19,22 +19,23 @@ Array.prototype.diff = function (lst) {
 };
 
 const missingKeys = (paths, obj) => {
-  return paths.reduce((acc, path) => {
+  return paths.reduce((accumulator, path) => {
     const objByPath = path.split(".").reduce((acc, p) => {
       if (acc && acc.properties) return acc.properties[p];
-      if (acc && !acc.properties) undefined;
+      if (acc && !acc.properties) return undefined;
       return acc;
     }, deepcopy(obj));
     if (!objByPath) {
-      return [...acc, path];
+      return [...accumulator, path];
     }
-    return acc;
+    return accumulator;
   }, []);
 };
 
-const addKeyAsRequired = (keyPath, obj) => {
+const addKeyAsRequired = (keyPath, _obj) => {
+  const obj = _obj;
   const [head, ...tail] = keyPath;
-  if (tail.length == 0) {
+  if (tail.length === 0) {
     obj.required = [...new Set([head, ...(obj.required || [])])];
     return obj;
   }
@@ -51,30 +52,8 @@ const addKeysAsRequired = (keys, obj) => {
   return keys.reduce((acc, path) => addKeyAsRequired(path.split("."), acc), deepcopy(obj));
 };
 
-const makeOptions = (peek, then, otherwise, state, convert) => {
-  const [falsyOptions, falsePaths] = singleFieldObject(peek);
-  const negativeOptions = falsyOptions.map(o => diff(otherwise, o, state, convert));
-  const positionOption = mergeDiff(then, peek);
-  const [missingKey = [], ...keys] = negativeOptions.reduce((acc, obj) => {
-    return [...acc, missingKeys(falsePaths, obj)];
-  }, []);
-  const positiveMissingKeys = missingKeys(falsePaths, positionOption);
-  const allNegativeMissingKeys = keys.reduce(_.intersection, missingKey);
-
-  const zipNegativeAndKeys = _.zip(negativeOptions, [missingKey, ...keys]);
-  const negativeAlternatives = zipNegativeAndKeys.reduce((acc, [obj, keys]) => {
-    return [...acc, addKeysAsRequired(allNegativeMissingKeys.diff(keys), obj)];
-  }, []);
-  return {
-    oneOf: [
-      addKeysAsRequired(allNegativeMissingKeys.diff(positiveMissingKeys), positionOption),
-      ...removeOverlapping(negativeAlternatives, falsePaths, state, convert)
-    ]
-  };
-};
-
 const extractObjFromPath = (path, obj, store, state, convert) => {
-  const _obj = deepcopy(obj);
+  let _obj = deepcopy(obj);
   const [key, ...keys] = path;
   if (!key) return obj;
   if (_obj && obj.$ref) _obj = retrievePrintedReference(_obj, state.components);
@@ -136,6 +115,28 @@ const singleFieldObject = _obj => {
     );
   }
   return [[_obj], [""]];
+};
+
+const makeOptions = (peek, then, otherwise, state, convert) => {
+  const [falsyOptions, falsePaths] = singleFieldObject(peek);
+  const negativeOptions = falsyOptions.map(o => diff(otherwise, o, state, convert));
+  const positionOption = mergeDiff(then, peek);
+  const [missingKey = [], ...keys] = negativeOptions.reduce((acc, obj) => {
+    return [...acc, missingKeys(falsePaths, obj)];
+  }, []);
+  const positiveMissingKeys = missingKeys(falsePaths, positionOption);
+  const allNegativeMissingKeys = keys.reduce(_.intersection, missingKey);
+
+  const zipNegativeAndKeys = _.zip(negativeOptions, [missingKey, ...keys]);
+  const negativeAlternatives = zipNegativeAndKeys.reduce((acc, [obj, allKeys]) => {
+    return [...acc, addKeysAsRequired(allNegativeMissingKeys.diff(allKeys), obj)];
+  }, []);
+  return {
+    oneOf: [
+      addKeysAsRequired(allNegativeMissingKeys.diff(positiveMissingKeys), positionOption),
+      ...removeOverlapping(negativeAlternatives, falsePaths, state, convert)
+    ]
+  };
 };
 
 const buildAlternative = (lst, originalObj, state, convert) => {
@@ -228,32 +229,22 @@ const createPeeks = (options, originalObj, state, convert) => {
     ];
     return acc.length === 0
       ? peeksAlternatives
-      : peeksAlternatives.reduce((objs, alt) => objs.map(o => merge(o, alt, state, convert)), acc);
+      : peeksAlternatives.reduce(
+          (objs, alterantive) => objs.map(o => merge(o, alterantive, state, convert)),
+          acc
+        );
   }, []);
 };
 
-const makeAlternativesFromOptions = (optOf, newObj, state, convert) => {
-  const nonEmptyOptions = optOf.filter(opt => opt.options.length !== 0);
-  if (nonEmptyOptions.length === 0) {
-    return newObj;
-  }
-  const grouppedOptions = groupByOptions(nonEmptyOptions, newObj, state, convert);
-  return {
-    oneOf: createPeeks(grouppedOptions, newObj, state, convert)
-      .map(p => {
-        return makeOptions(p.peek, p.then, p.otherwise, state, convert);
-      })
-      .reduce((acc, v) => [...acc, ...v.oneOf], [])
-  };
-};
-
-const joinOption = (option, opt, key) => {
+const joinOption = (_option, opt, key) => {
+  const option = _option;
   option.thennable = [...(option.thennable || []), { key, opt: opt.then }];
   option.otherwise = [...(option.otherwise || []), { key, opt: opt.otherwise }];
   return option;
 };
 
-const getStoredKeyFromOption = (option, objChildren, state, convert) => {
+const getStoredKeyFromOption = (_option, objChildren, state, convert) => {
+  const option = _option;
   if (option.is && option.is.type === "any") {
     option.is = retrieveReferenceByName(option.ref, objChildren, state, convert);
   }
@@ -264,7 +255,7 @@ const isGlobalRepresentation = obj => obj.type === "string" && !obj.enum;
 
 const groupByOptions = (opts, objChildren, state, convert) => {
   const _objChildren = deepcopy(objChildren);
-  return opts.reduce((store, opt) => {
+  return opts.reduce((accumulator, opt) => {
     return opt.options.reduce((store, option) => {
       const maybeConvertedOption = getStoredKeyFromOption(option, _objChildren, state, convert);
       const reference = option.ref;
@@ -303,8 +294,23 @@ const groupByOptions = (opts, objChildren, state, convert) => {
           }
         }
       };
-    }, store);
+    }, accumulator);
   }, {});
+};
+
+const makeAlternativesFromOptions = (optOf, newObj, state, convert) => {
+  const nonEmptyOptions = optOf.filter(opt => opt.options.length !== 0);
+  if (nonEmptyOptions.length === 0) {
+    return newObj;
+  }
+  const grouppedOptions = groupByOptions(nonEmptyOptions, newObj, state, convert);
+  return {
+    oneOf: createPeeks(grouppedOptions, newObj, state, convert)
+      .map(p => {
+        return makeOptions(p.peek, p.then, p.otherwise, state, convert);
+      })
+      .reduce((acc, v) => [...acc, ...v.oneOf], [])
+  };
 };
 
 module.exports = { makeOptions, makeAlternativesFromOptions };
