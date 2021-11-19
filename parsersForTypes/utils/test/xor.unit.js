@@ -9,7 +9,7 @@ const {
   setEquality,
   insert,
   computedNotAllowedRelation
-} = require("../nand");
+} = require("../xor");
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -17,7 +17,7 @@ chai.use(sinonChai);
 describe("Joi Nand Utils", () => {
   beforeEach(() => {});
 
-  describe.only("makeDependencies", () => {
+  describe("makeDependencies", () => {
     describe("When called with nands dependences", () => {
       let obj;
       let expectedObj;
@@ -71,7 +71,7 @@ describe("Joi Nand Utils", () => {
         ];
 
         expectedObj = {
-          code: new Set([new Set(["text"]), new Set(["name"])]),
+          code: new Set([new Set(["text", "name"])]),
           text: new Set([new Set(["code"])]),
           name: new Set([new Set(["code"])])
         };
@@ -103,9 +103,9 @@ describe("Joi Nand Utils", () => {
         ];
 
         expectedObj = {
-          alpha: new Set([new Set(["code"]), new Set(["code"])]),
-          text: new Set([new Set(["code"]), new Set(["alpha"])]),
-          code: new Set([new Set(["text"]), new Set(["alpha"]), new Set(["name"])]),
+          alpha: new Set([new Set(["code", "text"])]),
+          text: new Set([new Set(["code", "alpha"])]),
+          code: new Set([new Set(["text", "alpha", "name"])]),
           name: new Set([new Set(["code"])])
         };
       });
