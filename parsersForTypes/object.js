@@ -6,7 +6,8 @@ const {
   makeOptions,
   makeAlternativesFromOptions,
   merge,
-  removeKeyFromObjectWithPath,
+  removeKeyWithPath,
+  removeDuplicates,
   extractNands,
   computedNotAllowedRelation
 } = require("./utils");
@@ -183,7 +184,7 @@ const buildNandsAlternativesAux = (nands, parsedObject, state) => {
     return [
       ...acc,
       [...notAllowedSet].reduce(
-        (obj, path) => removeKeyFromObjectWithPath(path.split("."), obj, state),
+        (obj, path) => removeKeyWithPath(path.split("."), obj, state),
         parsedObject
       )
     ];
@@ -192,12 +193,30 @@ const buildNandsAlternativesAux = (nands, parsedObject, state) => {
 
 const buildNandsAlternatives = (nands, parsedObject, state) => {
   if (parsedObject.oneOf) {
-    return parsedObject.oneOf.reduce(
-      (acc, obj) => [...acc, ...buildNandsAlternativesAux(nands, obj, state)],
-      []
-    );
+    return {
+      oneOf: parsedObject.oneOf.reduce(
+        (acc, obj) => [...acc, ...buildNandsAlternativesAux(nands, obj, state)],
+        []
+      )
+    };
   }
-  return buildNandsAlternativesAux(nands, parsedObject, state);
+  if (parsedObject.anyOf) {
+    return {
+      anyOf: parsedObject.anyOf.reduce(
+        (acc, obj) => [...acc, ...buildNandsAlternativesAux(nands, obj, state)],
+        []
+      )
+    };
+  }
+  if (parsedObject.allOf) {
+    return {
+      allOf: parsedObject.allOf.reduce(
+        (acc, obj) => [...acc, ...buildNandsAlternativesAux(nands, obj, state)],
+        []
+      )
+    };
+  }
+  return { oneOf: buildNandsAlternativesAux(nands, parsedObject, state) };
 };
 
 const parserAux = (joiSchema, state, convert) => {
@@ -218,9 +237,7 @@ const parser = (joiSchema, state, convert) => {
   const parsedObject = parserAux(joiSchema, state, convert);
 
   if (nands.length > 0) {
-    return {
-      oneOf: buildNandsAlternatives(nands, parsedObject, state)
-    };
+    return removeDuplicates(buildNandsAlternatives(nands, parsedObject, state));
   }
 
   return parsedObject;

@@ -1,11 +1,12 @@
 /* eslint-disable no-extend-native */
 const deepcopy = require("deepcopy");
 const _ = require("lodash");
-const { retrievePrintedReference, retrieveReferenceByName } = require("./reference");
+const { retrieveReferenceByName } = require("./reference");
 const { merge, mergeDiff } = require("./merge");
 
 const { overlapping } = require("./overlapping");
 const { diff } = require("./difference");
+const { extractObjFromPath, singleFieldObject } = require("./object");
 
 Array.prototype.equals = function (lst) {
   const [head, ...tail] = this;
@@ -52,33 +53,6 @@ const addKeysAsRequired = (keys, obj) => {
   return keys.reduce((acc, path) => addKeyAsRequired(path.split("."), acc), deepcopy(obj));
 };
 
-const extractObjFromPath = (path, obj, store, state, convert) => {
-  let _obj = deepcopy(obj);
-  const [key, ...keys] = path;
-  if (!key) return obj;
-  if (_obj && obj.$ref) _obj = retrievePrintedReference(_obj, state.components);
-  if (!_obj || (!_obj[key] && !_obj.properties && !_obj.properties[key])) return {};
-
-  const nest = store[key] || {};
-  if (_obj.type === "object") {
-    return merge(
-      store,
-      {
-        type: "object",
-        properties: {
-          [key]: {
-            ...extractObjFromPath(keys, _obj.properties[key], nest, state, convert)
-          }
-        }
-      },
-      state,
-      convert
-    );
-  }
-
-  return { [key]: { ...nest, ..._obj[key] } };
-};
-
 const makeView = (paths, obj, state, convert) =>
   paths.reduce((acc, p) => extractObjFromPath(p.split("."), obj, acc, state, convert), {});
 
@@ -98,23 +72,6 @@ const removeOverlapping = (list, paths, state, convert) => {
 
   const tailNoOverlap = removeOverlapping(notCoveredObjs, paths, state, convert);
   return [head, ...tailNoOverlap];
-};
-
-const singleFieldObject = _obj => {
-  if (!_obj) return [[], []];
-  if (_obj.type === "object") {
-    return Object.entries(_obj.properties).reduce(
-      ([objs, paths], [k, v]) => {
-        const [os, ps] = singleFieldObject(v);
-        return [
-          [...objs, ...os.map(o => ({ type: "object", properties: { [k]: o } }))],
-          [...paths, ...ps.map(p => `${k}${p ? "." : ""}${p}`)]
-        ];
-      },
-      [[], []]
-    );
-  }
-  return [[_obj], [""]];
 };
 
 const makeOptions = (peek, then, otherwise, state, convert) => {

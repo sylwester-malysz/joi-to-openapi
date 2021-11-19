@@ -2,7 +2,7 @@ const { makeOptions, makeAlternativesFromOptions } = require("./alternatives");
 const { merge, mergeDiff } = require("./merge");
 const { retrieveReference, retrievePrintedReference } = require("./reference");
 const { isJoi } = require("./joi");
-const { removeKeyFromObjectWithPath } = require("./object");
+const { removeKeyWithPath, removeDuplicates } = require("./object");
 const { extractNands, computedNotAllowedRelation } = require("./nand");
 
 const getBodyObjKey = condition => {
@@ -78,7 +78,8 @@ module.exports = {
   makeAlternativesFromOptions,
   merge,
   mergeDiff,
-  removeKeyFromObjectWithPath,
+  removeKeyWithPath,
   extractNands,
-  computedNotAllowedRelation
+  computedNotAllowedRelation,
+  removeDuplicates
 };

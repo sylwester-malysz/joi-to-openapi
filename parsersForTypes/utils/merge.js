@@ -1,3 +1,4 @@
+/* eslint-disable no-use-before-define */
 const deepcopy = require("deepcopy");
 const _ = require("lodash");
 const { retrievePrintedReference } = require("./reference");
@@ -12,7 +13,9 @@ const mergeProperties = (property1, property2, state, convert) => {
   }, _property1 || {});
 };
 
-const mergeString = (str1, str2) => {
+const mergeString = (_str1, _str2) => {
+  const str1 = _str1;
+  const str2 = _str2;
   if (!str2) return str1;
   if (str1.enum || str2.enum)
     str1.enum = [...new Set([...(str1.enum || []), ...(str2.enum || [])])];
@@ -24,7 +27,9 @@ const mergeString = (str1, str2) => {
   return str1;
 };
 
-const mergeInteger = (int1, int2) => {
+const mergeInteger = (_int1, _int2) => {
+  const int1 = _int1;
+  const int2 = _int2;
   if (!int2) return int1;
 
   if (typeof int1.minimum !== "undefined" || typeof int2.minimum !== "undefined") {
@@ -36,7 +41,7 @@ const mergeInteger = (int1, int2) => {
   }
 
   if (int1.nullable || int2.nullable) {
-    int1.nullable = str1.nullable || int2.nullable;
+    int1.nullable = int1.nullable || int2.nullable;
   }
 
   if (int1.format !== int2.format) {
@@ -46,7 +51,9 @@ const mergeInteger = (int1, int2) => {
   return int1;
 };
 
-const mergeBoolean = (bool1, bool2) => {
+const mergeBoolean = (_bool1, _bool2) => {
+  const bool1 = _bool1;
+  const bool2 = _bool2;
   if (!bool2) return bool1;
 
   if (bool1.nullable || bool2.nullable) {
