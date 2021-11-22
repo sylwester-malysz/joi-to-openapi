@@ -36,25 +36,17 @@ const removeDuplicatedObjects = objs => {
   return [head, ...removeDuplicatedObjects(tail.filter(obj => !_.isEqual(head, obj)))];
 };
 
-const removeDuplicates = obj => {
-  if (obj.oneOf) {
-    const oneOf = removeDuplicatedObjects(obj.oneOf);
-    return oneOf.length === 1 ? oneOf[0] : { oneOf };
-  }
-  if (obj.anyOf) {
-    const anyOf = removeDuplicatedObjects(obj.anyOf);
-    return anyOf.length === 1 ? anyOf[0] : { anyOf };
-  }
-  if (obj.allOf) {
-    const allOf = removeDuplicatedObjects(obj.allOf);
-    return allOf.length === 1 ? allOf[0] : { allOf };
+const removeDuplicates = (obj, key) => {
+  if (obj[key]) {
+    const elms = removeDuplicatedObjects(obj[key]);
+    return elms.length === 1 ? elms[0] : { [key]: elms };
   }
 
   return obj;
 };
 
 const processListOfObjects = (objs, key, path, state) =>
-  removeDuplicates({ [key]: objs.map(_obj => removeKeyWithPath(path, _obj, state)) });
+  removeDuplicates({ [key]: objs.map(_obj => removeKeyWithPath(path, _obj, state)) }, key);
 
 const processOptions = (path, obj, state) => {
   if (obj.oneOf) {

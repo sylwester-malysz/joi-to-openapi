@@ -1,4 +1,5 @@
 const chai = require("chai");
+const util = require("util");
 
 const { expect } = chai;
 const Joi = require("joi");
@@ -11,6 +12,401 @@ chai.use(sinonChai);
 
 describe("Joi Object to OpenAPI", () => {
   beforeEach(() => {});
+
+  describe("When xor is applied to the object", () => {
+    describe("When is applied to the object", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = Joi.object()
+          .keys({
+            id: Joi.string(),
+            code: Joi.string(),
+            text: Joi.string()
+          })
+          .xor("code", "text");
+
+        expectedObj = {
+          oneOf: [
+            {
+              type: "object",
+              properties: {
+                id: {
+                  type: "string"
+                },
+                text: {
+                  type: "string"
+                }
+              }
+            },
+            {
+              type: "object",
+              properties: {
+                id: {
+                  type: "string"
+                },
+                code: {
+                  type: "string"
+                }
+              }
+            }
+          ]
+        };
+      });
+
+      it("should convert the object in the proper open-api", () =>
+        expect(convert(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When sequence of xors with shared key is applied to the object", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = Joi.object()
+          .keys({
+            id: Joi.string(),
+            code: Joi.string(),
+            text: Joi.string()
+          })
+          .xor("code", "text")
+          .xor("code", "id");
+
+        expectedObj = {
+          oneOf: [
+            {
+              type: "object",
+              properties: {
+                id: {
+                  type: "string"
+                },
+                text: {
+                  type: "string"
+                }
+              }
+            },
+            {
+              type: "object",
+              properties: {
+                code: {
+                  type: "string"
+                }
+              }
+            }
+          ]
+        };
+      });
+
+      it("should convert the object in the proper open-api", () =>
+        expect(convert(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When sequence of xors with indipendent key is applied to the object", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = Joi.object()
+          .keys({
+            id: Joi.string(),
+            name: Joi.string(),
+            code: Joi.string(),
+            text: Joi.string()
+          })
+          .xor("code", "text")
+          .xor("name", "id");
+
+        expectedObj = {
+          oneOf: [
+            {
+              type: "object",
+              properties: {
+                id: {
+                  type: "string"
+                },
+                text: {
+                  type: "string"
+                }
+              }
+            },
+            {
+              type: "object",
+              properties: {
+                name: {
+                  type: "string"
+                },
+                text: {
+                  type: "string"
+                }
+              }
+            },
+            {
+              type: "object",
+              properties: {
+                id: {
+                  type: "string"
+                },
+                code: {
+                  type: "string"
+                }
+              }
+            },
+            {
+              type: "object",
+              properties: {
+                name: {
+                  type: "string"
+                },
+                code: {
+                  type: "string"
+                }
+              }
+            }
+          ]
+        };
+      });
+
+      it("should convert the object in the proper open-api", () =>
+        expect(convert(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When nested path is provided", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = Joi.object()
+          .keys({
+            id: Joi.string(),
+            code: Joi.object().keys({
+              patch: Joi.string()
+            }),
+            text: Joi.string()
+          })
+          .xor("code.patch", "text");
+
+        expectedObj = {
+          oneOf: [
+            {
+              type: "object",
+              properties: {
+                id: {
+                  type: "string"
+                },
+                text: {
+                  type: "string"
+                },
+                code: {
+                  type: "object",
+                  properties: {}
+                }
+              }
+            },
+            {
+              type: "object",
+              properties: {
+                id: {
+                  type: "string"
+                },
+                code: {
+                  type: "object",
+                  properties: {
+                    patch: {
+                      type: "string"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        };
+      });
+
+      it("should convert the object in the proper open-api", () =>
+        expect(convert(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When nested path with custom separator is provided", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = Joi.object()
+          .keys({
+            id: Joi.string(),
+            code: Joi.object().keys({
+              patch: Joi.string()
+            }),
+            text: Joi.string()
+          })
+          .xor("code,patch", "text", { separator: "," });
+
+        expectedObj = {
+          oneOf: [
+            {
+              type: "object",
+              properties: {
+                id: {
+                  type: "string"
+                },
+                text: {
+                  type: "string"
+                },
+                code: {
+                  type: "object",
+                  properties: {}
+                }
+              }
+            },
+            {
+              type: "object",
+              properties: {
+                id: {
+                  type: "string"
+                },
+                code: {
+                  type: "object",
+                  properties: {
+                    patch: {
+                      type: "string"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        };
+      });
+
+      it("should convert the object in the proper open-api", () =>
+        expect(convert(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When xor is applied to an object with one conditional", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = Joi.object()
+          .keys({
+            digit: Joi.string().regex(/^([abcdABCD0-9*#pP])+$/),
+            date: Joi.alternatives(Joi.string().allow("").allow(null), Joi.object().unknown()),
+            sequence: Joi.number().integer(),
+            duration: Joi.when("method", {
+              is: "in",
+              then: Joi.number().integer().required(),
+              otherwise: Joi.forbidden()
+            }),
+            method: Joi.string().valid("in").optional()
+          })
+          .xor("digit", "sequence");
+        expectedObj = {
+          oneOf: [
+            {
+              type: "object",
+              properties: {
+                date: {
+                  anyOf: [
+                    {
+                      type: "string",
+                      nullable: true
+                    },
+                    {
+                      type: "object"
+                    }
+                  ]
+                },
+                sequence: {
+                  type: "integer"
+                },
+                duration: {
+                  type: "integer"
+                },
+                method: {
+                  type: "string",
+                  enum: ["in"]
+                }
+              },
+              required: ["method", "duration"]
+            },
+            {
+              type: "object",
+              properties: {
+                digit: {
+                  type: "string",
+                  pattern: "^([abcdABCD0-9*#pP])+$"
+                },
+                date: {
+                  anyOf: [
+                    {
+                      type: "string",
+                      nullable: true
+                    },
+                    {
+                      type: "object"
+                    }
+                  ]
+                },
+                duration: {
+                  type: "integer"
+                },
+                method: {
+                  type: "string",
+                  enum: ["in"]
+                }
+              },
+              required: ["method", "duration"]
+            },
+            {
+              type: "object",
+              properties: {
+                date: {
+                  anyOf: [
+                    {
+                      type: "string",
+                      nullable: true
+                    },
+                    {
+                      type: "object"
+                    }
+                  ]
+                },
+                sequence: {
+                  type: "integer"
+                }
+              }
+            },
+            {
+              type: "object",
+              properties: {
+                digit: {
+                  type: "string",
+                  pattern: "^([abcdABCD0-9*#pP])+$"
+                },
+                date: {
+                  anyOf: [
+                    {
+                      type: "string",
+                      nullable: true
+                    },
+                    {
+                      type: "object"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        };
+      });
+
+      it("should convert the object in the proper open-api", () => {
+        const converted = convert(obj);
+        return expect(converted).deep.equal(expectedObj);
+      });
+    });
+  });
 
   describe("When nand is applied to the object", () => {
     describe("When is applied to the object", () => {

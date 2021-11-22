@@ -3,7 +3,11 @@ const { merge, mergeDiff } = require("./merge");
 const { retrieveReference, retrievePrintedReference } = require("./reference");
 const { isJoi } = require("./joi");
 const { removeKeyWithPath, removeDuplicates } = require("./object");
-const { extractNands, computedNotAllowedRelation } = require("./nand");
+const {
+  extract: extractNands,
+  computedNotAllowedRelation: computedNandRelations
+} = require("./nand");
+const { extract: extractXors, computedNotAllowedRelation: computedXorRelations } = require("./xor");
 
 const getBodyObjKey = condition => {
   if ("oneOf" in condition) return { oneOf: condition.oneOf };
@@ -80,6 +84,8 @@ module.exports = {
   mergeDiff,
   removeKeyWithPath,
   extractNands,
-  computedNotAllowedRelation,
+  computedNandRelations,
+  extractXors,
+  computedXorRelations,
   removeDuplicates
 };

@@ -9,7 +9,9 @@ const {
   removeKeyWithPath,
   removeDuplicates,
   extractNands,
-  computedNotAllowedRelation
+  computedNandRelations,
+  extractXors,
+  computedXorRelations
 } = require("./utils");
 
 const wrapConditionInObject = (condition, objKey) => {
@@ -177,8 +179,8 @@ const handleOptionalFormObject = (obj, state, convert) => {
   return obj;
 };
 
-const buildNandsAlternativesAux = (nands, parsedObject, state) => {
-  const notAllawedRealations = computedNotAllowedRelation(nands);
+const buildAlternativesAux = (nands, parsedObject, computeRelations, state) => {
+  const notAllawedRealations = computeRelations(nands);
 
   return [...notAllawedRealations].reduce((acc, notAllowedSet) => {
     return [
@@ -191,32 +193,26 @@ const buildNandsAlternativesAux = (nands, parsedObject, state) => {
   }, []);
 };
 
-const buildNandsAlternatives = (nands, parsedObject, state) => {
+const buildAlternatives = (nands, parsedObject, computeRelations, state) => {
+  const alternatives = obj => buildAlternativesAux(nands, obj, computeRelations, state);
+  const parseList = list => list.reduce((acc, obj) => [...acc, ...alternatives(obj)], []);
+
   if (parsedObject.oneOf) {
     return {
-      oneOf: parsedObject.oneOf.reduce(
-        (acc, obj) => [...acc, ...buildNandsAlternativesAux(nands, obj, state)],
-        []
-      )
+      oneOf: parseList(parsedObject.oneOf)
     };
   }
   if (parsedObject.anyOf) {
     return {
-      anyOf: parsedObject.anyOf.reduce(
-        (acc, obj) => [...acc, ...buildNandsAlternativesAux(nands, obj, state)],
-        []
-      )
+      anyOf: parseList(parsedObject.anyOf)
     };
   }
   if (parsedObject.allOf) {
     return {
-      allOf: parsedObject.allOf.reduce(
-        (acc, obj) => [...acc, ...buildNandsAlternativesAux(nands, obj, state)],
-        []
-      )
+      allOf: parseList(parsedObject.allOf)
     };
   }
-  return { oneOf: buildNandsAlternativesAux(nands, parsedObject, state) };
+  return { oneOf: alternatives(parsedObject) };
 };
 
 const parserAux = (joiSchema, state, convert) => {
@@ -234,10 +230,14 @@ const parserAux = (joiSchema, state, convert) => {
 
 const parser = (joiSchema, state, convert) => {
   const nands = extractNands(joiSchema);
+  const xors = extractXors(joiSchema);
   const parsedObject = parserAux(joiSchema, state, convert);
 
   if (nands.length > 0) {
-    return removeDuplicates(buildNandsAlternatives(nands, parsedObject, state));
+    return removeDuplicates(buildAlternatives(nands, parsedObject, computedNandRelations, state));
+  }
+  if (xors.length > 0) {
+    return removeDuplicates(buildAlternatives(xors, parsedObject, computedXorRelations, state));
   }
 
   return parsedObject;
