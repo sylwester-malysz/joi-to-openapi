@@ -454,6 +454,57 @@ describe("Joi Object to OpenAPI", () => {
         expect(convert(obj)).deep.equal(expectedObj));
     });
 
+    describe.only("When multiple peers are given", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = Joi.object()
+          .keys({
+            alpha: Joi.string(),
+            code: Joi.string(),
+            text: Joi.string(),
+            name: Joi.string()
+          })
+          .nand("code", "text", "alpha")
+          .nand("code", "name", "alpha");
+
+        expectedObj = {
+          oneOf: [
+            {
+              type: "object",
+              properties: {
+                alpha: { type: "string" },
+                text: { type: "string" },
+                name: { type: "string" }
+              }
+            },
+            {
+              type: "object",
+              properties: { alpha: { type: "string" }, code: { type: "string" } }
+            },
+            {
+              type: "object",
+              properties: {
+                code: { type: "string" },
+                text: { type: "string" },
+                name: { type: "string" }
+              }
+            },
+            {
+              type: "object",
+              properties: { text: { type: "string" }, name: { type: "string" } }
+            }
+          ]
+        };
+
+        console.log(util.inspect(convert(obj), { showHidden: false, depth: null, colors: true }));
+      });
+
+      it("should convert the object in the proper open-api", () =>
+        expect(convert(obj)).deep.equal(expectedObj));
+    });
+
     describe("When sequence of nands with shared key is applied to the object", () => {
       let obj;
       let expectedObj;
