@@ -1,4 +1,8 @@
-const { makeOptions, makeAlternativesFromOptions } = require("./alternatives");
+const {
+  makeOptions,
+  makeAlternativesFromOptions,
+  maybeOptionsFromWhens
+} = require("./alternatives");
 const { merge, mergeDiff } = require("./merge");
 const { retrieveReference, retrievePrintedReference } = require("./reference");
 const { isJoi } = require("./joi");
@@ -76,6 +80,7 @@ module.exports = {
   isJoi,
   makeOptions,
   makeAlternativesFromOptions,
+  maybeOptionsFromWhens,
   merge,
   mergeDiff,
   removeKeyWithPath,

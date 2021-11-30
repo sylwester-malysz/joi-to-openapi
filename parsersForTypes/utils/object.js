@@ -22,6 +22,7 @@ const removeKeyFromObjectWithPath = (path, obj, state) => {
 
   return {
     type: "object",
+    ...(_obj.additionalProperties ? { additionalProperties: _obj.additionalProperties } : {}),
     properties: {
       ..._obj.properties,
       ...(nesting && { [key]: nesting })
@@ -36,25 +37,17 @@ const removeDuplicatedObjects = objs => {
   return [head, ...removeDuplicatedObjects(tail.filter(obj => !_.isEqual(head, obj)))];
 };
 
-const removeDuplicates = obj => {
-  if (obj.oneOf) {
-    const oneOf = removeDuplicatedObjects(obj.oneOf);
-    return oneOf.length === 1 ? oneOf[0] : { oneOf };
-  }
-  if (obj.anyOf) {
-    const anyOf = removeDuplicatedObjects(obj.anyOf);
-    return anyOf.length === 1 ? anyOf[0] : { anyOf };
-  }
-  if (obj.allOf) {
-    const allOf = removeDuplicatedObjects(obj.allOf);
-    return allOf.length === 1 ? allOf[0] : { allOf };
+const removeDuplicates = (obj, key) => {
+  if (obj[key]) {
+    const options = removeDuplicatedObjects(obj[key]);
+    return options.length === 1 ? options[0] : { [key]: options };
   }
 
   return obj;
 };
 
 const processListOfObjects = (objs, key, path, state) =>
-  removeDuplicates({ [key]: objs.map(_obj => removeKeyWithPath(path, _obj, state)) });
+  removeDuplicates({ [key]: objs.map(_obj => removeKeyWithPath(path, _obj, state)) }, key);
 
 const processOptions = (path, obj, state) => {
   if (obj.oneOf) {
@@ -88,6 +81,7 @@ const extractObjFromPath = (path, obj, store, state, convert) => {
       store,
       {
         type: "object",
+        ...(_obj.additionalProperties ? { additionalProperties: _obj.additionalProperties } : {}),
         properties: {
           [key]: {
             ...extractObjFromPath(keys, _obj.properties[key], nest, state, convert)
@@ -119,4 +113,9 @@ const singleFieldObject = _obj => {
   return [[_obj], [""]];
 };
 
-module.exports = { removeKeyWithPath, extractObjFromPath, singleFieldObject, removeDuplicates };
+module.exports = {
+  removeKeyWithPath,
+  extractObjFromPath,
+  singleFieldObject,
+  removeDuplicates
+};

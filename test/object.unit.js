@@ -12,6 +12,52 @@ chai.use(sinonChai);
 describe("Joi Object to OpenAPI", () => {
   beforeEach(() => {});
 
+  describe("When pattern is applied to the object", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object().pattern(Joi.string(), Joi.any());
+      expectedObj = {
+        type: "object",
+        additionalProperties: true
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When unknown is applied to the object", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object()
+        .keys({
+          code: Joi.string().valid("500", "300", "200"),
+          text: Joi.string()
+        })
+        .unknown();
+      expectedObj = {
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          code: {
+            type: "string",
+            enum: ["500", "300", "200"]
+          },
+          text: {
+            type: "string"
+          }
+        }
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
   describe("When nand is applied to the object", () => {
     describe("When is applied to the object", () => {
       let obj;
@@ -30,6 +76,7 @@ describe("Joi Object to OpenAPI", () => {
           oneOf: [
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 id: {
                   type: "string"
@@ -41,6 +88,7 @@ describe("Joi Object to OpenAPI", () => {
             },
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 id: {
                   type: "string"
@@ -76,6 +124,7 @@ describe("Joi Object to OpenAPI", () => {
           oneOf: [
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 id: {
                   type: "string"
@@ -87,6 +136,7 @@ describe("Joi Object to OpenAPI", () => {
             },
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 code: {
                   type: "string"
@@ -120,6 +170,7 @@ describe("Joi Object to OpenAPI", () => {
           oneOf: [
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 id: {
                   type: "string"
@@ -131,6 +182,7 @@ describe("Joi Object to OpenAPI", () => {
             },
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 name: {
                   type: "string"
@@ -142,6 +194,7 @@ describe("Joi Object to OpenAPI", () => {
             },
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 id: {
                   type: "string"
@@ -153,6 +206,7 @@ describe("Joi Object to OpenAPI", () => {
             },
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 name: {
                   type: "string"
@@ -189,6 +243,7 @@ describe("Joi Object to OpenAPI", () => {
           oneOf: [
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 id: {
                   type: "string"
@@ -197,6 +252,7 @@ describe("Joi Object to OpenAPI", () => {
                   type: "string"
                 },
                 code: {
+                  additionalProperties: false,
                   type: "object",
                   properties: {}
                 }
@@ -204,11 +260,13 @@ describe("Joi Object to OpenAPI", () => {
             },
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 id: {
                   type: "string"
                 },
                 code: {
+                  additionalProperties: false,
                   type: "object",
                   properties: {
                     patch: {
@@ -245,6 +303,7 @@ describe("Joi Object to OpenAPI", () => {
           oneOf: [
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 id: {
                   type: "string"
@@ -254,18 +313,21 @@ describe("Joi Object to OpenAPI", () => {
                 },
                 code: {
                   type: "object",
+                  additionalProperties: false,
                   properties: {}
                 }
               }
             },
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 id: {
                   type: "string"
                 },
                 code: {
                   type: "object",
+                  additionalProperties: false,
                   properties: {
                     patch: {
                       type: "string"
@@ -304,6 +366,7 @@ describe("Joi Object to OpenAPI", () => {
           oneOf: [
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 date: {
                   anyOf: [
@@ -312,6 +375,7 @@ describe("Joi Object to OpenAPI", () => {
                       nullable: true
                     },
                     {
+                      additionalProperties: true,
                       type: "object"
                     }
                   ]
@@ -331,6 +395,7 @@ describe("Joi Object to OpenAPI", () => {
             },
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 digit: {
                   type: "string",
@@ -343,6 +408,7 @@ describe("Joi Object to OpenAPI", () => {
                       nullable: true
                     },
                     {
+                      additionalProperties: true,
                       type: "object"
                     }
                   ]
@@ -359,6 +425,7 @@ describe("Joi Object to OpenAPI", () => {
             },
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 date: {
                   anyOf: [
@@ -367,6 +434,7 @@ describe("Joi Object to OpenAPI", () => {
                       nullable: true
                     },
                     {
+                      additionalProperties: true,
                       type: "object"
                     }
                   ]
@@ -378,6 +446,7 @@ describe("Joi Object to OpenAPI", () => {
             },
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 digit: {
                   type: "string",
@@ -390,6 +459,7 @@ describe("Joi Object to OpenAPI", () => {
                       nullable: true
                     },
                     {
+                      additionalProperties: true,
                       type: "object"
                     }
                   ]
@@ -420,6 +490,7 @@ describe("Joi Object to OpenAPI", () => {
         .and("code", "text");
       expectedObj = {
         type: "object",
+        additionalProperties: false,
         properties: {
           code: {
             type: "string"
@@ -448,6 +519,7 @@ describe("Joi Object to OpenAPI", () => {
         .and("code", "text");
       expectedObj = {
         type: "object",
+        additionalProperties: false,
         properties: {
           code: {
             type: "string",
@@ -477,6 +549,7 @@ describe("Joi Object to OpenAPI", () => {
         .and("code", "text");
       expectedObj = {
         type: "object",
+        additionalProperties: false,
         properties: {
           code: {
             type: "string",
@@ -507,6 +580,7 @@ describe("Joi Object to OpenAPI", () => {
         .and("code", "text");
       expectedObj = {
         type: "object",
+        additionalProperties: false,
         properties: {
           code: {
             type: "string",
@@ -544,6 +618,7 @@ describe("Joi Object to OpenAPI", () => {
         oneOf: [
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               digit: {
                 type: "string",
@@ -556,6 +631,7 @@ describe("Joi Object to OpenAPI", () => {
                     nullable: true
                   },
                   {
+                    additionalProperties: true,
                     type: "object"
                   }
                 ]
@@ -575,6 +651,7 @@ describe("Joi Object to OpenAPI", () => {
           },
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               digit: {
                 type: "string",
@@ -587,6 +664,7 @@ describe("Joi Object to OpenAPI", () => {
                     nullable: true
                   },
                   {
+                    additionalProperties: true,
                     type: "object"
                   }
                 ]
@@ -631,9 +709,11 @@ describe("Joi Object to OpenAPI", () => {
         oneOf: [
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               body: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   stream: {
                     type: "string",
@@ -656,9 +736,11 @@ describe("Joi Object to OpenAPI", () => {
           },
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               body: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   stream: {
                     type: "string",
@@ -706,6 +788,7 @@ describe("Joi Object to OpenAPI", () => {
         oneOf: [
           {
             type: "object",
+            additionalProperties: true,
             properties: {
               identifier: {
                 type: "string",
@@ -731,6 +814,7 @@ describe("Joi Object to OpenAPI", () => {
           },
           {
             type: "object",
+            additionalProperties: true,
             properties: {
               identifier: {
                 type: "string",
@@ -784,6 +868,7 @@ describe("Joi Object to OpenAPI", () => {
         oneOf: [
           {
             type: "object",
+            additionalProperties: true,
             properties: {
               identifier: {
                 type: "string",
@@ -806,6 +891,7 @@ describe("Joi Object to OpenAPI", () => {
           },
           {
             type: "object",
+            additionalProperties: true,
             properties: {
               identifier: {
                 type: "string",
@@ -858,6 +944,7 @@ describe("Joi Object to OpenAPI", () => {
         oneOf: [
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               someKey: {
                 type: "string",
@@ -868,6 +955,7 @@ describe("Joi Object to OpenAPI", () => {
               },
               embeed: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   struct: {
                     anyOf: [{ type: "string" }, { type: "number", format: "float" }]
@@ -880,12 +968,14 @@ describe("Joi Object to OpenAPI", () => {
           },
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               sequence: {
                 type: "string"
               },
               embeed: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   struct: { type: "string" }
                 },
@@ -941,9 +1031,11 @@ describe("Joi Object to OpenAPI", () => {
         oneOf: [
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               someObject: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   name: {
                     type: "string"
@@ -960,6 +1052,7 @@ describe("Joi Object to OpenAPI", () => {
               },
               reason: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   txt: {
                     type: "string"
@@ -971,9 +1064,11 @@ describe("Joi Object to OpenAPI", () => {
           },
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               someObject: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   name: {
                     type: "string"
@@ -1019,12 +1114,14 @@ describe("Joi Object to OpenAPI", () => {
 
       expectedObjUpperScope = {
         type: "object",
+        additionalProperties: false,
         properties: {
           sequence: {
             type: "string"
           },
           embeed: {
             type: "object",
+            additionalProperties: false,
             properties: {}
           }
         }
@@ -1055,12 +1152,14 @@ describe("Joi Object to OpenAPI", () => {
 
       expectedObjUpperScope = {
         type: "object",
+        additionalProperties: false,
         properties: {
           sequence: {
             type: "string"
           },
           embeed: {
             type: "object",
+            additionalProperties: false,
             properties: {
               struct: {
                 anyOf: [{ type: "string" }, { type: "number", format: "float" }]
@@ -1096,6 +1195,7 @@ describe("Joi Object to OpenAPI", () => {
 
       expectedObjUpperScope = {
         type: "object",
+        additionalProperties: false,
         properties: {
           sequence: {
             type: "string",
@@ -1103,6 +1203,7 @@ describe("Joi Object to OpenAPI", () => {
           },
           embeed: {
             type: "object",
+            additionalProperties: false,
             properties: {
               struct: {
                 anyOf: [{ type: "string" }, { type: "number", format: "float" }]
@@ -1120,7 +1221,7 @@ describe("Joi Object to OpenAPI", () => {
     });
   });
 
-  describe("When .when is applied to a field which doesn't exist - nullable is propagated", () => {
+  describe("When .when is applied to a field which exists - nullable is propagated", () => {
     let obj;
     let expectedObj;
 
@@ -1141,6 +1242,7 @@ describe("Joi Object to OpenAPI", () => {
         oneOf: [
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               someKey: {
                 type: "string",
@@ -1151,6 +1253,7 @@ describe("Joi Object to OpenAPI", () => {
               },
               embeed: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   struct: {
                     anyOf: [{ type: "string" }, { type: "number", format: "float" }]
@@ -1163,19 +1266,21 @@ describe("Joi Object to OpenAPI", () => {
           },
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               sequence: {
                 type: "string"
               },
               embeed: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   struct: {
                     oneOf: [
                       { type: "array" },
                       { type: "boolean" },
                       { type: "number" },
-                      { type: "object" },
+                      { type: "object", additionalProperties: true },
                       { type: "string" }
                     ]
                   }
@@ -1215,6 +1320,7 @@ describe("Joi Object to OpenAPI", () => {
         oneOf: [
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               someKey: {
                 type: "string",
@@ -1225,6 +1331,7 @@ describe("Joi Object to OpenAPI", () => {
               },
               embeed: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   struct: {
                     oneOf: [{ type: "string" }, { type: "number", format: "float" }]
@@ -1237,19 +1344,21 @@ describe("Joi Object to OpenAPI", () => {
           },
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               sequence: {
                 type: "string"
               },
               embeed: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   struct: {
                     oneOf: [
                       { type: "array" },
                       { type: "boolean" },
                       { type: "number" },
-                      { type: "object" },
+                      { type: "object", additionalProperties: true },
                       { type: "string" }
                     ]
                   }
@@ -1289,6 +1398,7 @@ describe("Joi Object to OpenAPI", () => {
         oneOf: [
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               someKey: {
                 type: "string",
@@ -1299,6 +1409,7 @@ describe("Joi Object to OpenAPI", () => {
               },
               embeed: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   struct: {
                     allOf: [{ type: "string" }, { type: "number", format: "float" }]
@@ -1311,19 +1422,21 @@ describe("Joi Object to OpenAPI", () => {
           },
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               sequence: {
                 type: "string"
               },
               embeed: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   struct: {
                     oneOf: [
                       { type: "array" },
                       { type: "boolean" },
                       { type: "number" },
-                      { type: "object" },
+                      { type: "object", additionalProperties: true },
                       { type: "string" }
                     ]
                   }
@@ -1383,6 +1496,7 @@ describe("Joi Object to OpenAPI", () => {
         oneOf: [
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               from: {
                 type: "string"
@@ -1392,6 +1506,7 @@ describe("Joi Object to OpenAPI", () => {
               },
               body: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   status: {
                     type: "string",
@@ -1415,6 +1530,7 @@ describe("Joi Object to OpenAPI", () => {
           },
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               from: {
                 type: "string"
@@ -1424,6 +1540,7 @@ describe("Joi Object to OpenAPI", () => {
               },
               body: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   status: {
                     type: "string",
@@ -1447,6 +1564,7 @@ describe("Joi Object to OpenAPI", () => {
           },
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               from: {
                 type: "string"
@@ -1456,6 +1574,159 @@ describe("Joi Object to OpenAPI", () => {
               },
               body: {
                 type: "object",
+                additionalProperties: false,
+                properties: {
+                  status: {
+                    type: "string",
+                    enum: ["on", "off"]
+                  },
+                  stream_direction: {
+                    type: "string",
+                    enum: ["in"]
+                  }
+                },
+                required: ["stream_direction"]
+              },
+              identifier: {
+                type: "string"
+              },
+              device_id: {
+                type: "string"
+              }
+            },
+            required: ["from", "timestamp", "identifier", "device_id", "body"]
+          }
+        ]
+      };
+    });
+
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj);
+      return expect(converted).deep.equal(expectedObj);
+    });
+  });
+
+  describe("When .when is applied to an object with unknown", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object({
+        from: Joi.string().allow("").required(),
+        timestamp: Joi.string().required(),
+        identifier: Joi.string().required(),
+        device_id: Joi.string().required(),
+        body: Joi.object()
+          .keys({
+            status: Joi.string().valid("on", "off", "pause"),
+            stream_direction: Joi.string().valid("in", "out").required()
+          })
+          .unknown()
+          .required()
+      }).when(
+        Joi.object({
+          body: Joi.object({
+            stream_direction: Joi.string().valid("in").required(),
+            status: Joi.string().valid("pause").required()
+          })
+            .required()
+            .unknown()
+        }).unknown(),
+        {
+          then: Joi.object({
+            identifier: Joi.string().optional(),
+            device_id: Joi.string().optional()
+          }),
+          otherwise: Joi.object({
+            identifier: Joi.string().required(),
+            device_id: Joi.string().required()
+          })
+        }
+      );
+
+      expectedObj = {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              from: {
+                type: "string"
+              },
+              timestamp: {
+                type: "string"
+              },
+              body: {
+                type: "object",
+                additionalProperties: true,
+                properties: {
+                  status: {
+                    type: "string",
+                    enum: ["pause"]
+                  },
+                  stream_direction: {
+                    type: "string",
+                    enum: ["in"]
+                  }
+                },
+                required: ["stream_direction", "status"]
+              },
+              identifier: {
+                type: "string"
+              },
+              device_id: {
+                type: "string"
+              }
+            },
+            required: ["from", "timestamp", "body"]
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              from: {
+                type: "string"
+              },
+              timestamp: {
+                type: "string"
+              },
+              body: {
+                type: "object",
+                additionalProperties: true,
+                properties: {
+                  status: {
+                    type: "string",
+                    enum: ["on", "off", "pause"]
+                  },
+                  stream_direction: {
+                    type: "string",
+                    enum: ["out"]
+                  }
+                },
+                required: ["stream_direction"]
+              },
+              identifier: {
+                type: "string"
+              },
+              device_id: {
+                type: "string"
+              }
+            },
+            required: ["from", "timestamp", "identifier", "device_id", "body"]
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              from: {
+                type: "string"
+              },
+              timestamp: {
+                type: "string"
+              },
+              body: {
+                type: "object",
+                additionalProperties: true,
                 properties: {
                   status: {
                     type: "string",

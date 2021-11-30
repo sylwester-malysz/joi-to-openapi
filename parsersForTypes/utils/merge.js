@@ -69,12 +69,14 @@ const mergeObject = (obj1, obj2, state, convert) => {
 
   const mergedObj = {
     type: "object",
-    properties: mergeProperties(obj1.properties, obj2.properties, state, convert)
+    properties: mergeProperties(obj1.properties, obj2.properties, state, convert),
+    additionalProperties: (obj1.additionalProperties || obj2.additionalProperties) ?? false
   };
 
   if (obj1.required || obj2.required) {
     mergedObj.required = [...new Set([...(obj1.required || []), ...(obj2.required || [])])];
   }
+
   return mergedObj;
 };
 

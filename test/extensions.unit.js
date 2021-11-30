@@ -1,6 +1,7 @@
 const chai = require("chai");
 
 const { expect } = chai;
+const joiObj = require("joi");
 
 const chaiAsPromised = require("chai-as-promised");
 const sinonChai = require("sinon-chai");
@@ -9,12 +10,12 @@ const { convert } = require("../index");
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
 
-const Joi = require("joi")
-  .extend((joi) => ({
+const Joi = joiObj
+  .extend(joi => ({
     base: joi.any(),
     type: "reference",
     messages: {
-      "reference.use": "{{#q}}",
+      "reference.use": "{{#q}}"
     },
     coerce() {},
     validate() {},
@@ -25,38 +26,40 @@ const Joi = require("joi")
           return this.$_addRule({ name: "use" }).$_setFlag("_ref", ref);
         },
         args: [],
-        validate(value, helpers, args, options) {},
-      },
-    },
+        // eslint-disable-next-line no-unused-vars
+        validate(value, helpers, args, options) {}
+      }
+    }
   }))
-  .extend((joi) => ({
+  .extend(joi => ({
     base: joi.any(),
-    type: "opt",
+    type: "opt"
   }))
-  .extend((joi) => ({
+  .extend(joi => ({
     base: joi.opt(),
     type: "opt",
     messages: {
-      "opt.alternative": "{{#q}}",
+      "opt.alternative": "{{#q}}"
     },
     rules: {
       alternative: {
         method(alternatives) {
           return this.$_addRule({
             name: "alternative",
-            args: { alternatives },
+            args: { alternatives }
           });
         },
         args: [
           {
             name: "alternatives",
-            assert: (value) => typeof value === "object",
-            message: "must be an object",
-          },
+            assert: value => typeof value === "object",
+            message: "must be an object"
+          }
         ],
-        validate(value, helpers, args, options) {},
-      },
-    },
+        // eslint-disable-next-line no-unused-vars
+        validate(value, helpers, args, options) {}
+      }
+    }
   }));
 
 describe("Joi Extensions to OpenAPI", () => {
@@ -67,13 +70,13 @@ describe("Joi Extensions to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      const joiExtension = Joi.extend((joi) => ({
+      const joiExtension = Joi.extend(joi => ({
         base: joi.string(),
-        type: "newExtension",
+        type: "newExtension"
       }));
       obj = joiExtension.newExtension();
       expectedObj = {
-        type: "string",
+        type: "string"
       };
     });
 
@@ -86,14 +89,14 @@ describe("Joi Extensions to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      const joiExtension = Joi.extend((joi) => ({
+      const joiExtension = Joi.extend(joi => ({
         base: joi.string().valid("test", "test1"),
-        type: "newExtension",
+        type: "newExtension"
       }));
       obj = joiExtension.newExtension();
       expectedObj = {
         type: "string",
-        enum: ["test", "test1"],
+        enum: ["test", "test1"]
       };
     });
 
@@ -106,33 +109,31 @@ describe("Joi Extensions to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      const joiExtension = Joi.extend((joi) => ({
+      const joiExtension = Joi.extend(joi => ({
         base: joi.object().keys({
-          test: joi
-            .string()
-            .valid("test", "test1")
-            .required(),
-          list: joi.array().items(joi.string().valid("a", "b")),
+          test: joi.string().valid("test", "test1").required(),
+          list: joi.array().items(joi.string().valid("a", "b"))
         }),
-        type: "newExtension",
+        type: "newExtension"
       }));
       obj = joiExtension.newExtension();
       expectedObj = {
         type: "object",
+        additionalProperties: false,
         properties: {
           test: {
             type: "string",
-            enum: ["test", "test1"],
+            enum: ["test", "test1"]
           },
           list: {
             type: "array",
             items: {
               type: "string",
-              enum: ["a", "b"],
-            },
-          },
+              enum: ["a", "b"]
+            }
+          }
         },
-        required: ["test"],
+        required: ["test"]
       };
     });
 
@@ -145,43 +146,41 @@ describe("Joi Extensions to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      const joiExtension = Joi.extend((joi) => ({
+      const joiExtension = Joi.extend(joi => ({
         base: joi.alternatives().try(
           joi.object().keys({
-            test: joi
-              .string()
-              .valid("test", "test1")
-              .required(),
-            list: joi.array().items(joi.string().valid("a", "b")),
+            test: joi.string().valid("test", "test1").required(),
+            list: joi.array().items(joi.string().valid("a", "b"))
           }),
           joi.string()
         ),
-        type: "newExtension",
+        type: "newExtension"
       }));
       obj = joiExtension.newExtension();
       expectedObj = {
         anyOf: [
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               test: {
                 type: "string",
-                enum: ["test", "test1"],
+                enum: ["test", "test1"]
               },
               list: {
                 type: "array",
                 items: {
                   type: "string",
-                  enum: ["a", "b"],
-                },
-              },
+                  enum: ["a", "b"]
+                }
+              }
             },
-            required: ["test"],
+            required: ["test"]
           },
           {
-            type: "string",
-          },
-        ],
+            type: "string"
+          }
+        ]
       };
     });
 
@@ -194,14 +193,14 @@ describe("Joi Extensions to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      const joiExtension = Joi.extend((joi) => ({
+      const joiExtension = Joi.extend(joi => ({
         base: joi.number(),
-        type: "newExtension",
+        type: "newExtension"
       }));
       obj = joiExtension.newExtension();
       expectedObj = {
         type: "number",
-        format: "float",
+        format: "float"
       };
     });
 
@@ -214,14 +213,14 @@ describe("Joi Extensions to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      const joiExtension = Joi.extend((joi) => ({
+      const joiExtension = Joi.extend(joi => ({
         base: joi.binary(),
-        type: "newExtension",
+        type: "newExtension"
       }));
       obj = joiExtension.newExtension();
       expectedObj = {
         type: "string",
-        format: "binary",
+        format: "binary"
       };
     });
 
@@ -234,13 +233,13 @@ describe("Joi Extensions to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      const joiExtension = Joi.extend((joi) => ({
+      const joiExtension = Joi.extend(joi => ({
         base: joi.boolean(),
-        type: "newExtension",
+        type: "newExtension"
       }));
       obj = joiExtension.newExtension();
       expectedObj = {
-        type: "boolean",
+        type: "boolean"
       };
     });
 
@@ -253,14 +252,14 @@ describe("Joi Extensions to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      const joiExtension = Joi.extend((joi) => ({
+      const joiExtension = Joi.extend(joi => ({
         base: joi.date(),
-        type: "newExtension",
+        type: "newExtension"
       }));
       obj = joiExtension.newExtension();
       expectedObj = {
         type: "string",
-        format: "date-time",
+        format: "date-time"
       };
     });
 
@@ -273,9 +272,9 @@ describe("Joi Extensions to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      const joiExtension = Joi.extend((joi) => ({
+      const joiExtension = Joi.extend(joi => ({
         base: joi.any(),
-        type: "newExtension",
+        type: "newExtension"
       }));
       obj = joiExtension.newExtension();
       expectedObj = {
@@ -283,9 +282,9 @@ describe("Joi Extensions to OpenAPI", () => {
           { type: "array" },
           { type: "boolean" },
           { type: "number" },
-          { type: "object" },
-          { type: "string" },
-        ],
+          { type: "object", additionalProperties: true },
+          { type: "string" }
+        ]
       };
     });
 
@@ -298,12 +297,12 @@ describe("Joi Extensions to OpenAPI", () => {
     let expectedObj;
     let obj;
     beforeEach(() => {
-      ext = Joi.extend((joi) => ({
+      ext = Joi.extend(joi => ({
         base: joi.opt().alternative({
           1: joi.object().keys({ sun: joi.string().required() }),
-          2: joi.object().keys({ moon: joi.string().required() }),
+          2: joi.object().keys({ moon: joi.string().required() })
         }),
-        type: "solarSystem",
+        type: "solarSystem"
       }));
 
       obj = ext.solarSystem();
@@ -312,23 +311,25 @@ describe("Joi Extensions to OpenAPI", () => {
         oneOf: [
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               sun: {
-                type: "string",
-              },
+                type: "string"
+              }
             },
-            required: ["sun"],
+            required: ["sun"]
           },
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               moon: {
-                type: "string",
-              },
+                type: "string"
+              }
             },
-            required: ["moon"],
-          },
-        ],
+            required: ["moon"]
+          }
+        ]
       };
     });
 
@@ -341,17 +342,17 @@ describe("Joi Extensions to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      let joi = Joi.extend((joi) => ({
-        base: joi
+      const joi = Joi.extend(_joi => ({
+        base: _joi
           .array()
           .items(
-            Joi.reference().use("schemas:1"),
-            Joi.reference().use("schemas:2"),
-            Joi.reference().use("schemas:3"),
-            Joi.reference().use("schemas:4"),
-            Joi.reference().use("schemas:5")
+            _joi.reference().use("schemas:1"),
+            _joi.reference().use("schemas:2"),
+            _joi.reference().use("schemas:3"),
+            _joi.reference().use("schemas:4"),
+            _joi.reference().use("schemas:5")
           ),
-        type: "numbers",
+        type: "numbers"
       }));
       obj = joi.numbers();
       expectedObj = {
@@ -359,22 +360,22 @@ describe("Joi Extensions to OpenAPI", () => {
         items: {
           anyOf: [
             {
-              $ref: "#/components/schemas/1",
+              $ref: "#/components/schemas/1"
             },
             {
-              $ref: "#/components/schemas/2",
+              $ref: "#/components/schemas/2"
             },
             {
-              $ref: "#/components/schemas/3",
+              $ref: "#/components/schemas/3"
             },
             {
-              $ref: "#/components/schemas/4",
+              $ref: "#/components/schemas/4"
             },
             {
-              $ref: "#/components/schemas/5",
-            },
-          ],
-        },
+              $ref: "#/components/schemas/5"
+            }
+          ]
+        }
       };
     });
 

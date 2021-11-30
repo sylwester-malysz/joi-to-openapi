@@ -10,14 +10,14 @@ chai.use(chaiAsPromised);
 chai.use(sinonChai);
 
 const Joi = require("joi")
-  .extend((joi) => ({
+  .extend(joi => ({
     base: joi.any(),
     type: "reference",
     messages: {
-      "reference.use": "{{#q}}",
+      "reference.use": "{{#q}}"
     },
-    coerce() {},
-    validate() {},
+    coerce() { },
+    validate() { },
     rules: {
       use: {
         multi: true,
@@ -25,83 +25,78 @@ const Joi = require("joi")
           return this.$_addRule({ name: "use" }).$_setFlag("_ref", ref);
         },
         args: [],
-        validate(value, helpers, args, options) {},
-      },
-    },
+        validate(value, helpers, args, options) { }
+      }
+    }
   }))
-  .extend((joi) => ({
+  .extend(joi => ({
     type: "route",
     base: joi.object(),
     messages: {
       "route.components": "{{#q}}",
-      "route.paths": "{{#q}}",
+      "route.paths": "{{#q}}"
     },
-    coerce() {},
-    validate() {},
+    coerce() { },
+    validate() { },
     rules: {
       components: {
         convert: true,
         method(components) {
           return this.$_addRule({
-            name: "components",
+            name: "components"
           }).$_setFlag("components", { ...components });
         },
         args: [],
-        validate() {},
+        validate() { }
       },
       paths: {
         convert: true,
         method(paths) {
           return this.$_addRule({ name: "paths" }).$_setFlag("routing", {
-            paths,
+            paths
           });
         },
         args: [],
-        validate() {},
-      },
-    },
+        validate() { }
+      }
+    }
   }));
 
 describe("Joi Route to OpenAPI", () => {
-  beforeEach(() => {});
+  beforeEach(() => { });
 
   describe("When route extension is used", () => {
     let routing;
     let expectedObj;
 
     beforeEach(() => {
-      schema = (joi) => ({
+      schema = joi => ({
         schemas: {
-          token: joi.string().max(40),
+          token: joi.string().max(40)
         },
         parameters: {
           user_name: {
             name: "user_name",
             in: "path",
-            schema: joi.string().required(),
-          },
+            schema: joi.string().required()
+          }
         },
         responses: {
           user: {
-            "application/json": joi
-              .object()
-              .keys({ name: joi.string().required() }),
-          },
+            "application/json": joi.object().keys({ name: joi.string().required() })
+          }
         },
         requestBodies: {
           user: {
             "application/json": joi.object().keys({
               name: joi.string().required(),
-              token: joi
-                .reference()
-                .use("schemas:token")
-                .optional(),
-            }),
-          },
-        },
+              token: joi.reference().use("schemas:token").optional()
+            })
+          }
+        }
       });
 
-      buildPath = (joi) => ({
+      buildPath = joi => ({
         "/session": [
           {
             method: "POST",
@@ -110,19 +105,19 @@ describe("Joi Route to OpenAPI", () => {
               responses: {
                 201: {
                   "application/json": joi.object().keys({
-                    token: joi.string().required(),
-                  }),
-                },
+                    token: joi.string().required()
+                  })
+                }
               },
               params: [],
               requestBody: {
                 "application/json": joi.object().keys({
                   username: joi.string().required(),
-                  password: joi.string().required(),
-                }),
-              },
-            },
-          },
+                  password: joi.string().required()
+                })
+              }
+            }
+          }
         ],
         "/user/:user_name": [
           {
@@ -130,36 +125,26 @@ describe("Joi Route to OpenAPI", () => {
             versions: ["0.0.1"],
             handler: {
               responses: {
-                200: joi
-                  .reference()
-                  .use("responses:user")
-                  .required(),
+                200: joi.reference().use("responses:user").required()
               },
-              params: [
-                joi
-                  .reference()
-                  .use("parameters:user_name")
-                  .required(),
-              ],
-              requestBody: {},
-            },
+              params: [joi.reference().use("parameters:user_name").required()],
+              requestBody: {}
+            }
           },
           {
             method: "POST",
             versions: ["0.0.1"],
             handler: {
               responses: {
-                200: joi.reference().use("responses:user"),
+                200: joi.reference().use("responses:user")
               },
               params: [joi.reference().use("parameters:user_name")],
-              requestBody: joi.reference().use("requestBodies:user"),
-            },
-          },
-        ],
+              requestBody: joi.reference().use("requestBodies:user")
+            }
+          }
+        ]
       });
-      routing = Joi.route()
-        .paths(buildPath(Joi))
-        .components(schema(Joi));
+      routing = Joi.route().paths(buildPath(Joi)).components(schema(Joi));
       expectedObj = {
         "0.0.1": {
           openapi: "3.0.0",
@@ -171,8 +156,8 @@ describe("Joi Route to OpenAPI", () => {
             contact: {
               name: "your name",
               url: "http://your.contact.com",
-              email: "youremail@email.com",
-            },
+              email: "youremail@email.com"
+            }
           },
           paths: {
             "/session": {
@@ -185,83 +170,85 @@ describe("Joi Route to OpenAPI", () => {
                       "application/json": {
                         schema: {
                           type: "object",
+                          additionalProperties: false,
                           properties: {
                             token: {
-                              type: "string",
-                            },
+                              type: "string"
+                            }
                           },
-                          required: ["token"],
-                        },
-                      },
-                    },
-                  },
+                          required: ["token"]
+                        }
+                      }
+                    }
+                  }
                 },
                 requestBody: {
                   content: {
                     "application/json": {
                       schema: {
                         type: "object",
+                        additionalProperties: false,
                         properties: {
                           username: {
-                            type: "string",
+                            type: "string"
                           },
                           password: {
-                            type: "string",
-                          },
+                            type: "string"
+                          }
                         },
-                        required: ["username", "password"],
-                      },
-                    },
-                  },
-                },
-              },
+                        required: ["username", "password"]
+                      }
+                    }
+                  }
+                }
+              }
             },
             "/user/{user_name}": {
               get: {
                 parameters: [
                   {
-                    $ref: "#/components/parameters/user_name",
-                  },
+                    $ref: "#/components/parameters/user_name"
+                  }
                 ],
                 responses: {
                   200: {
-                    $ref: "#/components/responses/user",
-                  },
-                },
+                    $ref: "#/components/responses/user"
+                  }
+                }
               },
               post: {
                 parameters: [
                   {
-                    $ref: "#/components/parameters/user_name",
-                  },
+                    $ref: "#/components/parameters/user_name"
+                  }
                 ],
                 responses: {
                   200: {
-                    $ref: "#/components/responses/user",
-                  },
+                    $ref: "#/components/responses/user"
+                  }
                 },
                 requestBody: {
-                  $ref: "#/components/requestBodies/user",
-                },
-              },
-            },
+                  $ref: "#/components/requestBodies/user"
+                }
+              }
+            }
           },
           components: {
             schemas: {
               token: {
                 type: "string",
-                maxLength: 40,
-              },
+                maxLength: 40
+              }
             },
             parameters: {
               user_name: {
                 name: "user_name",
                 in: "path",
                 schema: {
-                  type: "string",
+                  type: "string"
                 },
-                required: true,
-              },
+                required: true
+              }
             },
             responses: {
               user: {
@@ -270,16 +257,17 @@ describe("Joi Route to OpenAPI", () => {
                   "application/json": {
                     schema: {
                       type: "object",
+                      additionalProperties: false,
                       properties: {
                         name: {
-                          type: "string",
-                        },
+                          type: "string"
+                        }
                       },
-                      required: ["name"],
-                    },
-                  },
-                },
-              },
+                      required: ["name"]
+                    }
+                  }
+                }
+              }
             },
             requestBodies: {
               user: {
@@ -288,22 +276,23 @@ describe("Joi Route to OpenAPI", () => {
                   "application/json": {
                     schema: {
                       type: "object",
+                      additionalProperties: false,
                       properties: {
                         name: {
-                          type: "string",
+                          type: "string"
                         },
                         token: {
-                          $ref: "#/components/schemas/token",
-                        },
+                          $ref: "#/components/schemas/token"
+                        }
                       },
-                      required: ["name"],
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
+                      required: ["name"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       };
     });
 

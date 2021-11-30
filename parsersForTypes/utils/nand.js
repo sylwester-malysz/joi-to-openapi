@@ -7,14 +7,12 @@ const escapeSepToRegExp = sep => {
 };
 
 const normaliseSeparator = _nand => {
-  // .log(_nand);
   const nand = _nand;
   nand.peers = nand.peers.map(_peer => {
     const peer = _peer;
     peer.key = peer.key.replace(new RegExp(escapeSepToRegExp(peer.separator), "g"), ".");
     return peer;
   });
-  // console.log(nand);
   return nand;
 };
 

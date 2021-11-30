@@ -22,9 +22,9 @@ const parser = (schema, state, convert) => {
       { type: "array" },
       { type: "boolean" },
       { type: "number" },
-      { type: "object" },
-      { type: "string" },
-    ],
+      { type: "object", additionalProperties: true },
+      { type: "string" }
+    ]
   };
 };
 
