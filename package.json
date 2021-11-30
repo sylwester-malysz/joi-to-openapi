@@ -1,6 +1,6 @@
 {
   "name": "joi-openapi",
-  "version": "2.1.1",
+  "version": "3.0.0",
   "description": "Joi converter to openapi 3.0 standard",
   "main": "index.js",
   "repository": {

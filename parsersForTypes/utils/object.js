@@ -15,6 +15,8 @@ const removeKeyFromObjectWithPath = (path, obj, state) => {
   if (_obj?.$ref) _obj = retrievePrintedReference(_obj, state.components);
   if (keys.length === 0 && _obj.properties[key]) {
     delete _obj.properties[key];
+    if (Object.keys(_obj.properties).length === 0) delete _obj.properties;
+
     return _obj;
   }
 
@@ -22,6 +24,9 @@ const removeKeyFromObjectWithPath = (path, obj, state) => {
 
   return {
     type: "object",
+    ...(typeof _obj.additionalProperties !== "undefined"
+      ? { additionalProperties: _obj.additionalProperties }
+      : {}),
     properties: {
       ..._obj.properties,
       ...(nesting && { [key]: nesting })
@@ -80,6 +85,7 @@ const extractObjFromPath = (path, obj, store, state, convert) => {
       store,
       {
         type: "object",
+        ...(_obj.additionalProperties ? { additionalProperties: _obj.additionalProperties } : {}),
         properties: {
           [key]: {
             ...extractObjFromPath(keys, _obj.properties[key], nest, state, convert)
@@ -111,4 +117,9 @@ const singleFieldObject = _obj => {
   return [[_obj], [""]];
 };
 
-module.exports = { removeKeyWithPath, extractObjFromPath, singleFieldObject, removeDuplicates };
+module.exports = {
+  removeKeyWithPath,
+  extractObjFromPath,
+  singleFieldObject,
+  removeDuplicates
+};

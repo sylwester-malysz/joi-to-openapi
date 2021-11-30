@@ -102,7 +102,12 @@ const makeFullDependencies = dependencies => {
 const computedNotAllowedRelation = (peersContainers, makeDependencies) => {
   const dependencies = makeFullDependencies(makeDependencies(peersContainers));
   return Object.values(dependencies).reduce((setAcc, setOfDeps) => {
-    return [...setOfDeps].reduce((set, dep) => insert(set, dep), setAcc);
+    return [...setOfDeps].reduce((set, dep) => {
+      if (![...set].some(s => subset(s, dep))) {
+        return insert(new Set([...set].filter(s => !superset(s, dep))), dep);
+      }
+      return set;
+    }, setAcc);
   }, new Set());
 };
 

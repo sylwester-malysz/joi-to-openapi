@@ -1,6 +1,7 @@
 const chai = require("chai");
 
 const { expect } = chai;
+const Joi = require("joi");
 
 const chaiAsPromised = require("chai-as-promised");
 const sinonChai = require("sinon-chai");
@@ -9,11 +10,7 @@ const { convert } = require("../index");
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
 
-const Joi = require("joi");
-
 describe("Joi Array to OpenAPI", () => {
-  beforeEach(() => {});
-
   describe("When an array is given", () => {
     let obj;
     let expectedObj;
@@ -24,8 +21,8 @@ describe("Joi Array to OpenAPI", () => {
         type: "array",
         items: {
           type: "string",
-          enum: ["a", "b"],
-        },
+          enum: ["a", "b"]
+        }
       };
     });
 
@@ -48,19 +45,20 @@ describe("Joi Array to OpenAPI", () => {
           anyOf: [
             {
               type: "string",
-              enum: ["a", "b"],
+              enum: ["a", "b"]
             },
             {
               type: "object",
+              additionalProperties: false,
               properties: {
                 a: {
-                  type: "string",
-                },
+                  type: "string"
+                }
               },
-              required: ["a"],
-            },
-          ],
-        },
+              required: ["a"]
+            }
+          ]
+        }
       };
     });
 
@@ -73,17 +71,15 @@ describe("Joi Array to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      obj = Joi.array()
-        .items(Joi.string().valid("a", "b"))
-        .length(10);
+      obj = Joi.array().items(Joi.string().valid("a", "b")).length(10);
       expectedObj = {
         type: "array",
         items: {
           type: "string",
-          enum: ["a", "b"],
+          enum: ["a", "b"]
         },
         maxItems: 10,
-        minItems: 10,
+        minItems: 10
       };
     });
 
@@ -96,16 +92,14 @@ describe("Joi Array to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      obj = Joi.array()
-        .items(Joi.string().valid("a", "b"))
-        .min(10);
+      obj = Joi.array().items(Joi.string().valid("a", "b")).min(10);
       expectedObj = {
         type: "array",
         items: {
           type: "string",
-          enum: ["a", "b"],
+          enum: ["a", "b"]
         },
-        minItems: 10,
+        minItems: 10
       };
     });
 
@@ -118,16 +112,14 @@ describe("Joi Array to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
-      obj = Joi.array()
-        .items(Joi.string().valid("a", "b"))
-        .max(10);
+      obj = Joi.array().items(Joi.string().valid("a", "b")).max(10);
       expectedObj = {
         type: "array",
         items: {
           type: "string",
-          enum: ["a", "b"],
+          enum: ["a", "b"]
         },
-        maxItems: 10,
+        maxItems: 10
       };
     });
 

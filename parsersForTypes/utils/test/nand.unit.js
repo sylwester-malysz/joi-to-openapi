@@ -269,6 +269,35 @@ describe("Joi Nand Utils", () => {
         expect(computedNotAllowedRelation(obj)).deep.equal(expectedObj));
     });
 
+    describe("When more than 2 distinct peers are present", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = [
+          {
+            peers: [
+              { path: ["code"], key: "code" },
+              { path: ["text"], key: "text" },
+              { path: ["alpha"], key: "alpha" }
+            ]
+          },
+          {
+            peers: [
+              { path: ["code"], key: "code" },
+              { path: ["name"], key: "name" },
+              { path: ["alpha"], key: "alpha" }
+            ]
+          }
+        ];
+
+        expectedObj = new Set([new Set(["code"]), new Set(["name", "text"]), new Set(["alpha"])]);
+      });
+
+      it("should return the dependency object", () =>
+        expect(computedNotAllowedRelation(obj)).deep.equal(expectedObj));
+    });
+
     describe("When distinct peers overlaps", () => {
       let obj;
       let expectedObj;

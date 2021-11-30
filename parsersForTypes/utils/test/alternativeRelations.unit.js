@@ -119,6 +119,30 @@ describe("Joi AlternativeRelations Dependencies Utils", () => {
         expect(makeFullDependencies(obj)).deep.equal(expectedObj));
     });
 
+    describe("When called with nands dependences", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = {
+          alpha: new Set([new Set(["code"]), new Set(["name", "text"])]),
+          text: new Set([new Set(["code"]), new Set(["alpha"]), new Set(["alpha", "code"])]),
+          code: new Set([new Set(["name", "text"]), new Set(["alpha"])]),
+          name: new Set([new Set(["code"]), new Set(["alpha", "code"]), new Set(["alpha"])])
+        };
+
+        expectedObj = {
+          alpha: new Set([new Set(["code"]), new Set(["name", "text"])]),
+          text: new Set([new Set(["code"]), new Set(["alpha"]), new Set(["alpha", "code"])]),
+          code: new Set([new Set(["name", "text"]), new Set(["alpha"])]),
+          name: new Set([new Set(["code"]), new Set(["alpha", "code"]), new Set(["alpha"])])
+        };
+      });
+
+      it("should return the augmented dependency object", () =>
+        expect(makeFullDependencies(obj)).deep.equal(expectedObj));
+    });
+
     describe("When distinct peers overlaps", () => {
       let obj;
       let expectedObj;

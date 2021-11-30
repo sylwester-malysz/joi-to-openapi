@@ -76,8 +76,10 @@ const removeOverlapping = (list, paths, state, convert) => {
 
 const makeOptions = (peek, then, otherwise, state, convert) => {
   const [falsyOptions, falsePaths] = singleFieldObject(peek);
+
   const negativeOptions = falsyOptions.map(o => diff(otherwise, o, state, convert));
   const positionOption = mergeDiff(then, peek);
+
   const [missingKey = [], ...keys] = negativeOptions.reduce((acc, obj) => {
     return [...acc, missingKeys(falsePaths, obj)];
   }, []);
@@ -88,6 +90,7 @@ const makeOptions = (peek, then, otherwise, state, convert) => {
   const negativeAlternatives = zipNegativeAndKeys.reduce((acc, [obj, allKeys]) => {
     return [...acc, addKeysAsRequired(allNegativeMissingKeys.diff(allKeys), obj)];
   }, []);
+
   return {
     oneOf: [
       addKeysAsRequired(allNegativeMissingKeys.diff(positiveMissingKeys), positionOption),
@@ -98,25 +101,23 @@ const makeOptions = (peek, then, otherwise, state, convert) => {
 
 const buildAlternative = (lst, originalObj, state, convert) => {
   const [opts, noOpts] = _.partition(lst, o => o.opt);
-  const newObj = opts.reduce(
-    (acc, obj) => {
-      const { isRequired, ...rest } = obj.opt;
+  const newObj = opts.reduce((acc, obj) => {
+    const { isRequired, ...rest } = obj.opt;
 
-      const _toMerge = {
-        type: "object",
-        properties: {
-          [obj.key]: rest
-        }
-      };
-
-      if (isRequired || (acc.required || []).includes(obj.key)) {
-        _toMerge.required = [obj.key];
+    const _toMerge = {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        [obj.key]: rest
       }
+    };
 
-      return merge(acc, _toMerge, state, convert);
-    },
-    { ...deepcopy(originalObj) }
-  );
+    if (isRequired || (acc.required || []).includes(obj.key)) {
+      _toMerge.required = [obj.key];
+    }
+
+    return merge(acc, _toMerge, state, convert);
+  }, deepcopy(originalObj));
   if (newObj.required) newObj.required = newObj.required.diff(noOpts.map(o => o.key));
   return newObj;
 };
@@ -134,6 +135,7 @@ const createOpenApiObject = (path, root, obj, state, convert) => {
       return { [key]: container };
     }, obj)
   };
+
   return merge(root, _obj, state, convert);
 };
 
@@ -145,17 +147,20 @@ const createPeekAlternative = (
   fullObject,
   state,
   convert
-) => ({
-  peek: createOpenApiObject([...objectPath], {}, is, state, convert),
-  then: buildAlternative(thennable, fullObject, state, convert),
-  otherwise: buildAlternative(otherwise, fullObject, state, convert)
-});
+) => {
+  return {
+    peek: createOpenApiObject([...objectPath], {}, is, state, convert),
+    then: buildAlternative(thennable, fullObject, state, convert),
+    otherwise: buildAlternative(otherwise, fullObject, state, convert)
+  };
+};
 
 const createPeeks = (options, originalObj, state, convert) => {
   const _originalObj = deepcopy(originalObj);
   return Object.entries(options).reduce((acc, [k, v]) => {
     const objectPath = k.split(".");
     const fullObject = createOpenApiObject(objectPath, _originalObj, v.reference, state, convert);
+
     const alt = v.allCases
       ? [
           createPeekAlternative(
@@ -184,6 +189,7 @@ const createPeeks = (options, originalObj, state, convert) => {
       ),
       ...alt
     ];
+
     return acc.length === 0
       ? peeksAlternatives
       : peeksAlternatives.reduce(
@@ -208,7 +214,7 @@ const getStoredKeyFromOption = (_option, objChildren, state, convert) => {
   return option;
 };
 
-const isGlobalRepresentation = obj => obj.type === "string" && !obj.enum;
+const isExistenceCondition = obj => obj.type === "string" && !obj.enum;
 
 const groupByOptions = (opts, objChildren, state, convert) => {
   const _objChildren = deepcopy(objChildren);
@@ -220,7 +226,8 @@ const groupByOptions = (opts, objChildren, state, convert) => {
         reference: retrieveReferenceByName(reference, _objChildren, state, convert),
         alternatives: {}
       };
-      if (isGlobalRepresentation(maybeConvertedOption.is)) {
+
+      if (isExistenceCondition(maybeConvertedOption.is)) {
         return {
           ...store,
           [reference]: {
@@ -232,6 +239,7 @@ const groupByOptions = (opts, objChildren, state, convert) => {
           }
         };
       }
+
       const storeKey = maybeConvertedOption.is.enum.join(".");
       const enumContainer = referenceContainer.alternatives[storeKey] || {
         is: option.is,
@@ -255,6 +263,64 @@ const groupByOptions = (opts, objChildren, state, convert) => {
   }, {});
 };
 
+const extractPeekFromOrigin = (origin, peek) => {
+  if (peek?.type === "object" && origin?.type === "object") {
+    return {
+      ...peek,
+      ...(typeof origin.additionalProperties !== "undefined"
+        ? { additionalProperties: origin.additionalProperties }
+        : {}),
+      properties: Object.entries(peek.properties).reduce(
+        ([originObj, peekClone], [key, value]) => {
+          if (originObj.properties[key]) {
+            return [
+              originObj,
+              {
+                ...peekClone,
+                [key]: extractPeekFromOrigin(originObj.properties[key], value)
+              }
+            ];
+          }
+          return [originObj, { ...peekClone, [key]: value }];
+        },
+        [origin, {}]
+      )[1]
+    };
+  }
+  return peek;
+};
+
+const overwriteRequired = (obj1, obj2) => {
+  const _obj1 = deepcopy(obj1);
+  const _obj2 = deepcopy(obj2);
+  let { required } = _obj1;
+  if (required) {
+    const allKeys = Object.keys(_obj2.properties);
+    const noRequiredKeys = _.difference(allKeys, _obj2.required || []);
+    const newRequired = _.difference(required, noRequiredKeys);
+    if (newRequired.length > 0) required = newRequired;
+  }
+
+  return { ..._obj1, required };
+};
+
+const maybeOptionsFromWhens = (obj, joiSchema, state, convert) => {
+  if (joiSchema.$_terms.whens) {
+    const conditionals = joiSchema.$_terms.whens[0];
+    const thennable = convert(conditionals.then, state);
+    const otherwise = convert(conditionals.otherwise, state);
+
+    return makeOptions(
+      extractPeekFromOrigin(obj, convert(conditionals.is, state)),
+      merge(overwriteRequired(obj, thennable), thennable, state, convert),
+      merge(overwriteRequired(obj, otherwise), otherwise, state, convert),
+      state,
+      convert
+    );
+  }
+  return obj;
+};
+
 const makeAlternativesFromOptions = (optOf, newObj, state, convert) => {
   const nonEmptyOptions = optOf.filter(opt => opt.options.length !== 0);
   if (nonEmptyOptions.length === 0) {
@@ -264,10 +330,16 @@ const makeAlternativesFromOptions = (optOf, newObj, state, convert) => {
   return {
     oneOf: createPeeks(grouppedOptions, newObj, state, convert)
       .map(p => {
-        return makeOptions(p.peek, p.then, p.otherwise, state, convert);
+        return makeOptions(
+          extractPeekFromOrigin(newObj, p.peek),
+          p.then,
+          p.otherwise,
+          state,
+          convert
+        );
       })
       .reduce((acc, v) => [...acc, ...v.oneOf], [])
   };
 };
 
-module.exports = { makeOptions, makeAlternativesFromOptions };
+module.exports = { makeOptions, makeAlternativesFromOptions, maybeOptionsFromWhens };

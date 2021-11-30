@@ -11,8 +11,6 @@ chai.use(chaiAsPromised);
 chai.use(sinonChai);
 
 describe("Joi Alternatives to OpenAPI", () => {
-  beforeEach(() => {});
-
   describe("When alternatives try is used with mode one", () => {
     let obj;
     let expectedObj;
@@ -23,13 +21,13 @@ describe("Joi Alternatives to OpenAPI", () => {
       expectedObj = {
         oneOf: [
           {
-            type: "string",
+            type: "string"
           },
           {
             type: "number",
-            format: "float",
-          },
-        ],
+            format: "float"
+          }
+        ]
       };
     });
 
@@ -49,13 +47,13 @@ describe("Joi Alternatives to OpenAPI", () => {
       expectedObj = {
         allOf: [
           {
-            type: "string",
+            type: "string"
           },
           {
             type: "number",
-            format: "float",
-          },
-        ],
+            format: "float"
+          }
+        ]
       };
     });
 
@@ -75,13 +73,13 @@ describe("Joi Alternatives to OpenAPI", () => {
       expectedObj = {
         anyOf: [
           {
-            type: "string",
+            type: "string"
           },
           {
             type: "number",
-            format: "float",
-          },
-        ],
+            format: "float"
+          }
+        ]
       };
     });
 
@@ -102,9 +100,9 @@ describe("Joi Alternatives to OpenAPI", () => {
           struct: Joi.when(Joi.ref("someKey"), {
             is: Joi.exist(),
             then: Joi.alternatives().try(Joi.string(), Joi.number()).required(),
-            otherwise: Joi.forbidden(),
-          }),
-        }).required(),
+            otherwise: Joi.forbidden()
+          })
+        }).required()
       });
 
       obj = Joi.object({
@@ -113,107 +111,111 @@ describe("Joi Alternatives to OpenAPI", () => {
           objCond,
           Joi.object().keys({
             timestamp: Joi.object().keys({
-              deleted: Joi.string()
-                .isoDate()
-                .description("Date in ISO format")
-                .required(),
-            }),
+              deleted: Joi.string().isoDate().description("Date in ISO format").required()
+            })
           })
-        ),
+        )
       });
 
       expectedObj = {
         oneOf: [
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               someKey: {
                 type: "string",
-                nullable: true,
+                nullable: true
               },
               body: {
                 anyOf: [
                   {
                     type: "object",
+                    additionalProperties: false,
                     properties: {
                       timestamp: {
                         type: "object",
+                        additionalProperties: false,
                         properties: {
                           deleted: {
                             type: "string",
                             format: "date-time",
-                            description: "Date in ISO format",
-                          },
+                            description: "Date in ISO format"
+                          }
                         },
-                        required: ["deleted"],
-                      },
-                    },
+                        required: ["deleted"]
+                      }
+                    }
                   },
                   {
                     type: "object",
+                    additionalProperties: false,
                     properties: {
                       sequence: {
-                        type: "string",
+                        type: "string"
                       },
                       embeed: {
                         type: "object",
+                        additionalProperties: false,
                         properties: {
                           struct: {
-                            anyOf: [
-                              { type: "string" },
-                              { type: "number", format: "float" },
-                            ],
-                          },
+                            anyOf: [{ type: "string" }, { type: "number", format: "float" }]
+                          }
                         },
-                        required: ["struct"],
-                      },
+                        required: ["struct"]
+                      }
                     },
-                    required: ["embeed"],
-                  },
-                ],
-              },
+                    required: ["embeed"]
+                  }
+                ]
+              }
             },
-            required: ["someKey"],
+            required: ["someKey"]
           },
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               body: {
                 anyOf: [
                   {
                     type: "object",
+                    additionalProperties: false,
                     properties: {
                       timestamp: {
                         type: "object",
+                        additionalProperties: false,
                         properties: {
                           deleted: {
                             type: "string",
                             format: "date-time",
-                            description: "Date in ISO format",
-                          },
+                            description: "Date in ISO format"
+                          }
                         },
-                        required: ["deleted"],
-                      },
-                    },
+                        required: ["deleted"]
+                      }
+                    }
                   },
                   {
                     type: "object",
+                    additionalProperties: false,
                     properties: {
                       sequence: {
-                        type: "string",
+                        type: "string"
                       },
                       embeed: {
                         type: "object",
-                        properties: {},
-                      },
+                        additionalProperties: false,
+                        properties: {}
+                      }
                     },
-                    required: ["embeed"],
-                  },
-                ],
-              },
-            },
-          },
-        ],
+                    required: ["embeed"]
+                  }
+                ]
+              }
+            }
+          }
+        ]
       };
     });
 

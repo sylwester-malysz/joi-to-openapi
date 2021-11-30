@@ -55,6 +55,7 @@ const join = (dep_a, dep_b) => {
 
     return dep;
   }, deepcopy(dep_b));
+
   return joinedDeps;
 };
 

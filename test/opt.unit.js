@@ -10,15 +10,15 @@ chai.use(chaiAsPromised);
 chai.use(sinonChai);
 
 const Joi = require("joi")
-  .extend((joi) => ({
+  .extend(joi => ({
     base: joi.any(),
-    type: "opt",
+    type: "opt"
   }))
-  .extend((joi) => ({
+  .extend(joi => ({
     base: joi.opt(),
     type: "opt",
     messages: {
-      "opt.alternative": "{{#q}}",
+      "opt.alternative": "{{#q}}"
     },
     rules: {
       alternative: {
@@ -26,15 +26,15 @@ const Joi = require("joi")
         method(alternatives) {
           return this.$_addRule({
             name: "alternative",
-            args: { alternatives },
+            args: { alternatives }
           });
         },
         args: [
           {
             name: "alternatives",
-            assert: (value) => typeof value === "object",
-            message: "must be an object",
-          },
+            assert: value => typeof value === "object",
+            message: "must be an object"
+          }
         ],
         validate(value, helpers, args, options) {
           const type = value.type || "";
@@ -44,14 +44,14 @@ const Joi = require("joi")
             const error = helpers.error(`opt.alternative`, {});
             error.local = {
               ...error.local,
-              q: `"target" with type ${type} is not supported`,
+              q: `"target" with type ${type} is not supported`
             };
 
             return error;
           }
           const internalOptions = Object.assign(options, {
             abortEarly: false,
-            context: { ...helpers.prefs.context },
+            context: { ...helpers.prefs.context }
           });
 
           const tagertValidation = target.validate(value, internalOptions);
@@ -59,20 +59,20 @@ const Joi = require("joi")
           if (tagertValidation.error) {
             const error = helpers.error(`opt.alternative`, {
               details: tagertValidation.error.details,
-              q: tagertValidation.error.details[0].message,
+              q: tagertValidation.error.details[0].message
             });
 
             return error;
           }
 
           return value;
-        },
-      },
-    },
+        }
+      }
+    }
   }));
 
 describe("Joi Options to OpenAPI", () => {
-  beforeEach(() => {});
+  beforeEach(() => { });
 
   describe("When .when is applied to options extension", () => {
     let obj;
@@ -81,23 +81,19 @@ describe("Joi Options to OpenAPI", () => {
     beforeEach(() => {
       obj = Joi.opt().alternative({
         test: Joi.object({
-          someKey: Joi.string()
-            .allow(null)
-            .optional(),
+          someKey: Joi.string().allow(null).optional(),
 
           embeed: Joi.object({
             body: Joi.object({
               sequence: Joi.string().required(),
               struct: Joi.when(Joi.ref("someKey"), {
                 is: Joi.exist(),
-                then: Joi.alternatives()
-                  .try(Joi.string(), Joi.number())
-                  .required(),
-                otherwise: Joi.forbidden(),
-              }),
-            }),
-          }).required(),
-        }),
+                then: Joi.alternatives().try(Joi.string(), Joi.number()).required(),
+                otherwise: Joi.forbidden()
+              })
+            })
+          }).required()
+        })
       });
 
       expectedObj = {
@@ -106,62 +102,68 @@ describe("Joi Options to OpenAPI", () => {
             oneOf: [
               {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   someKey: {
                     type: "string",
-                    nullable: true,
+                    nullable: true
                   },
                   embeed: {
                     type: "object",
+                    additionalProperties: false,
                     properties: {
                       body: {
                         type: "object",
+                        additionalProperties: false,
                         properties: {
                           sequence: {
-                            type: "string",
+                            type: "string"
                           },
                           struct: {
                             anyOf: [
                               {
-                                type: "string",
+                                type: "string"
                               },
                               {
                                 type: "number",
-                                format: "float",
-                              },
-                            ],
-                          },
+                                format: "float"
+                              }
+                            ]
+                          }
                         },
-                        required: ["sequence", "struct"],
-                      },
-                    },
-                  },
+                        required: ["sequence", "struct"]
+                      }
+                    }
+                  }
                 },
-                required: ["someKey", "embeed"],
+                required: ["someKey", "embeed"]
               },
               {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                   embeed: {
                     type: "object",
+                    additionalProperties: false,
                     properties: {
                       body: {
                         type: "object",
+                        additionalProperties: false,
                         properties: {
                           sequence: {
-                            type: "string",
-                          },
+                            type: "string"
+                          }
                         },
-                        required: ["sequence"],
-                      },
-                    },
-                  },
+                        required: ["sequence"]
+                      }
+                    }
+                  }
                 },
-                required: ["embeed"],
-              },
-            ],
-          },
-        ],
+                required: ["embeed"]
+              }
+            ]
+          }
+        ]
       };
     });
 
@@ -176,12 +178,12 @@ describe("Joi Options to OpenAPI", () => {
     let expectedObj;
     let obj;
     beforeEach(() => {
-      ext = Joi.extend((joi) => ({
+      ext = Joi.extend(joi => ({
         base: joi.opt().alternative({
           1: joi.object().keys({ sun: joi.string().required() }),
-          2: joi.object().keys({ sun: joi.string().required() }),
+          2: joi.object().keys({ sun: joi.string().required() })
         }),
-        type: "solarSystem",
+        type: "solarSystem"
       }));
 
       obj = ext.solarSystem();
@@ -190,14 +192,15 @@ describe("Joi Options to OpenAPI", () => {
         oneOf: [
           {
             type: "object",
+            additionalProperties: false,
             properties: {
               sun: {
-                type: "string",
-              },
+                type: "string"
+              }
             },
-            required: ["sun"],
+            required: ["sun"]
           }
-        ],
+        ]
       };
     });
 

@@ -43,6 +43,49 @@ describe("Joi Object Utils", () => {
         expect(removeKeyWithPath(["id"], obj, {})).deep.equal(expectedObj));
     });
 
+    describe("When object contains additionalProperties", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            id: {
+              type: "string"
+            },
+            code: {
+              additionalProperties: false,
+              type: "object",
+              properties: {
+                patch: {
+                  type: "string"
+                }
+              }
+            }
+          }
+        };
+
+        expectedObj = {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            id: {
+              type: "string"
+            },
+            code: {
+              additionalProperties: false,
+              type: "object"
+            }
+          }
+        };
+      });
+
+      it("should return the object without the specified key", () =>
+        expect(removeKeyWithPath(["code", "patch"], obj, {})).deep.equal(expectedObj));
+    });
+
     describe("When the key is inside of a oneOf", () => {
       let obj;
       let expectedObj;
