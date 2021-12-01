@@ -106,9 +106,21 @@ const computedNotAllowedRelation = (peersContainers, makeDependencies) => {
       if (![...set].some(s => subset(s, dep))) {
         return insert(new Set([...set].filter(s => !superset(s, dep))), dep);
       }
+
       return set;
     }, setAcc);
   }, new Set());
+};
+
+const allInvolvedNandKeys = peersContainers => {
+  return [
+    ...peersContainers.reduce((allPeersSet, peer) => {
+      return peer.peers.reduce((set, peerItem) => {
+        set.add(peerItem.key);
+        return set;
+      }, allPeersSet);
+    }, new Set())
+  ];
 };
 
 module.exports = {
@@ -120,5 +132,6 @@ module.exports = {
   normaliseSeparator,
   setEquality,
   insert,
-  computedNotAllowedRelation
+  computedNotAllowedRelation,
+  allInvolvedNandKeys
 };

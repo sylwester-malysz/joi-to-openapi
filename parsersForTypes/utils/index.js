@@ -6,7 +6,12 @@ const {
 const { merge, mergeDiff } = require("./merge");
 const { retrieveReference, retrievePrintedReference } = require("./reference");
 const { isJoi } = require("./joi");
-const { removeKeyWithPath, removeDuplicates } = require("./object");
+const {
+  removeKeyWithPath,
+  removeDuplicates,
+  requiredFieldsFromList,
+  isFieldPresent
+} = require("./object");
 const {
   extract: extractNands,
   computedNotAllowedRelation: computedNandRelations
@@ -92,5 +97,7 @@ module.exports = {
   computedNandRelations,
   extractXors,
   computedXorRelations,
-  removeDuplicates
+  removeDuplicates,
+  requiredFieldsFromList,
+  isFieldPresent
 };

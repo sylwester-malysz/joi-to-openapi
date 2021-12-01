@@ -11,7 +11,9 @@ const {
   extractNands,
   computedNandRelations,
   extractXors,
-  computedXorRelations
+  computedXorRelations,
+  requiredFieldsFromList,
+  isFieldPresent
 } = require("./utils");
 
 const wrapConditionInObject = (condition, objKey) => {
@@ -143,40 +145,38 @@ const handleOptionalFormObject = (obj, state, convert) => {
   return obj;
 };
 
-const buildAlternativesAux = (nands, parsedObject, computeRelations, state) => {
-  const notAllawedRealations = computeRelations(nands);
+const buildAlternativesAux = (alternatives, keys, parsedObject, computeRelations, state) => {
+  const notAllawedRealations = computeRelations(alternatives);
+  const requiredKeys = requiredFieldsFromList(keys, parsedObject);
+
+  // console.log(keys, requiredKeys, parsedObject);
 
   return [...notAllawedRealations].reduce((acc, notAllowedSet) => {
-    return [
-      ...acc,
-      [...notAllowedSet].reduce(
-        (obj, path) => removeKeyWithPath(path.split("."), obj, state),
-        parsedObject
-      )
-    ];
+    const reducedObject = [...notAllowedSet].reduce(
+      (obj, path) => removeKeyWithPath(path.split("."), obj, state),
+      parsedObject
+    );
+
+    if (requiredKeys.every(key => isFieldPresent(key.split("."), reducedObject)))
+      return [...acc, reducedObject];
+
+    return acc;
   }, []);
 };
 
-const buildAlternatives = (nands, parsedObject, computeRelations, state) => {
-  const alternatives = obj => buildAlternativesAux(nands, obj, computeRelations, state);
-  const parseList = list => list.reduce((acc, obj) => [...acc, ...alternatives(obj)], []);
+const buildAlternatives = (alternatives, keys, parsedObject, computeRelations, state) => {
+  const alts = obj => buildAlternativesAux(alternatives, keys, obj, computeRelations, state);
 
-  if (parsedObject.oneOf) {
+  if (parsedObject.oneOf || parsedObject.anyOf || parsedObject.allOf) {
     return {
-      oneOf: parseList(parsedObject.oneOf)
+      anyOf: (parsedObject.oneOf ?? parsedObject.anyOf ?? parsedObject.allOf).reduce(
+        (acc, obj) => [...acc, ...alts(obj)],
+        []
+      )
     };
   }
-  if (parsedObject.anyOf) {
-    return {
-      anyOf: parseList(parsedObject.anyOf)
-    };
-  }
-  if (parsedObject.allOf) {
-    return {
-      allOf: parseList(parsedObject.allOf)
-    };
-  }
-  return { oneOf: alternatives(parsedObject) };
+
+  return { anyOf: alts(parsedObject) };
 };
 
 const doNotAllowAdditionalProperties = (parsedObject, additionalProperties) => {
@@ -214,25 +214,36 @@ const parserAux = (joiSchema, state, convert) => {
   return handleOptionalFormObject(obj, state, convert);
 };
 
+const unwrapSingleObject = obj => {
+  const multipleSelection = obj.oneOf ?? obj.anyOf ?? obj.allOf ?? [];
+  if (multipleSelection.length === 1) return multipleSelection[0];
+
+  return obj;
+};
+
 const parser = (joiSchema, state, convert) => {
   const isAdditionalPropertiesEnabled =
     joiSchema._flags.unknown ?? joiSchema.$_terms.patterns?.length > 0;
 
-  const nands = extractNands(joiSchema);
-  const xors = extractXors(joiSchema);
+  const [nandsKeys, nands] = extractNands(joiSchema);
+  const [xorsKeys, xors] = extractXors(joiSchema);
   const parsedObject = doNotAllowAdditionalProperties(
     parserAux(joiSchema, state, convert),
     isAdditionalPropertiesEnabled
   );
 
   if (nands.length > 0) {
-    return removeDuplicates(buildAlternatives(nands, parsedObject, computedNandRelations, state));
+    return unwrapSingleObject(
+      buildAlternatives(nands, nandsKeys, parsedObject, computedNandRelations, state)
+    );
   }
   if (xors.length > 0) {
-    return removeDuplicates(buildAlternatives(xors, parsedObject, computedXorRelations, state));
+    return unwrapSingleObject(
+      buildAlternatives(xors, xorsKeys, parsedObject, computedXorRelations, state)
+    );
   }
 
-  return parsedObject;
+  return unwrapSingleObject(parsedObject);
 };
 
 module.exports = parser;

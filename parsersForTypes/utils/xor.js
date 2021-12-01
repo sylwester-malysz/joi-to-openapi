@@ -1,13 +1,16 @@
 const {
   normaliseSeparator,
   insert,
-  computedNotAllowedRelation
+  computedNotAllowedRelation,
+  allInvolvedNandKeys
 } = require("./alternativeRelations");
 
 const extract = joiSchema => {
-  return (joiSchema.$_terms.dependencies ?? [])
+  const nands = (joiSchema.$_terms.dependencies ?? [])
     .filter(dependency => dependency.rel === "xor")
     .map(normaliseSeparator);
+
+  return [allInvolvedNandKeys(nands), nands];
 };
 
 const makeRelations = (peers, relation, mem) => {

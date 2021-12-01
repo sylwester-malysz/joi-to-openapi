@@ -71,7 +71,57 @@ describe("Joi Nand Utils", () => {
   });
 
   describe("makeDependencies", () => {
-    describe("When called with nands dependences", () => {
+    describe("When called with single nands dependency", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = [
+          {
+            peers: [
+              { path: ["code"], key: "code" },
+              { path: ["text"], key: "text" }
+            ]
+          }
+        ];
+
+        expectedObj = {
+          code: new Set([new Set(["text"])]),
+          text: new Set([new Set(["code"])])
+        };
+      });
+
+      it("should return the dependency object", () =>
+        expect(makeDependencies(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When called with single peer item with multiple dependencies", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = [
+          {
+            peers: [
+              { path: ["code"], key: "code" },
+              { path: ["text"], key: "text" },
+              { path: ["alpha"], key: "alpha" }
+            ]
+          }
+        ];
+
+        expectedObj = {
+          code: new Set([new Set(["text"]), new Set(["alpha"])]),
+          text: new Set([new Set(["code"]), new Set(["alpha"])]),
+          alpha: new Set([new Set(["code"]), new Set(["text"])])
+        };
+      });
+
+      it("should return the dependency object", () =>
+        expect(makeDependencies(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When called with nands dependencies", () => {
       let obj;
       let expectedObj;
 
@@ -103,7 +153,7 @@ describe("Joi Nand Utils", () => {
         expect(makeDependencies(obj)).deep.equal(expectedObj));
     });
 
-    describe("When called with nands dependences", () => {
+    describe("When called with nands dependencies", () => {
       let obj;
       let expectedObj;
 
@@ -234,10 +284,77 @@ describe("Joi Nand Utils", () => {
       it("should return the dependency object", () =>
         expect(makeDependencies(obj)).deep.equal(expectedObj));
     });
+
+    describe("When called with nested path", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = [
+          {
+            peers: [
+              { path: ["code", "patch"], key: "code.patch" },
+              { path: ["text"], key: "text" }
+            ]
+          }
+        ];
+
+        expectedObj = {
+          "code.patch": new Set([new Set(["text"])]),
+          text: new Set([new Set(["code.patch"])])
+        };
+      });
+
+      it("should return the augmented dependency object", () =>
+        expect(makeDependencies(obj)).deep.equal(expectedObj));
+    });
   });
 
   describe("computedNotAllowedRelation", () => {
-    describe("When called with nands dependences", () => {
+    describe("When called with single nands dependency", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = [
+          {
+            peers: [
+              { path: ["code"], key: "code" },
+              { path: ["text"], key: "text" }
+            ]
+          }
+        ];
+
+        expectedObj = new Set([new Set(["code"]), new Set(["text"])]);
+      });
+
+      it("should return the dependency object", () =>
+        expect(computedNotAllowedRelation(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When called with single peer item with multiple dependencies", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = [
+          {
+            peers: [
+              { path: ["code"], key: "code" },
+              { path: ["text"], key: "text" },
+              { path: ["alpha"], key: "alpha" }
+            ]
+          }
+        ];
+
+        expectedObj = new Set([new Set(["code"]), new Set(["text"]), new Set(["alpha"])]);
+      });
+
+      it("should return the dependency object", () =>
+        expect(computedNotAllowedRelation(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When called with nands dependencies", () => {
       let obj;
       let expectedObj;
 
@@ -263,6 +380,27 @@ describe("Joi Nand Utils", () => {
           new Set(["text", "id"]),
           new Set(["text", "name"])
         ]);
+      });
+
+      it("should return the augmented dependency object", () =>
+        expect(computedNotAllowedRelation(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When called with nested path", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = [
+          {
+            peers: [
+              { path: ["code", "patch"], key: "code.patch" },
+              { path: ["text"], key: "text" }
+            ]
+          }
+        ];
+
+        expectedObj = new Set([new Set(["code.patch"]), new Set(["text"])]);
       });
 
       it("should return the augmented dependency object", () =>
@@ -325,7 +463,7 @@ describe("Joi Nand Utils", () => {
         expect(computedNotAllowedRelation(obj)).deep.equal(expectedObj));
     });
 
-    describe("When called with nands dependences", () => {
+    describe("When called with nands dependencies", () => {
       let obj;
       let expectedObj;
 

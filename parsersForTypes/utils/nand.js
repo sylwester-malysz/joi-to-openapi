@@ -6,13 +6,16 @@ const {
   union,
   subset,
   superset,
-  computedNotAllowedRelation
+  computedNotAllowedRelation,
+  allInvolvedNandKeys
 } = require("./alternativeRelations");
 
 const extract = joiSchema => {
-  return (joiSchema.$_terms.dependencies ?? [])
+  const nands = (joiSchema.$_terms.dependencies ?? [])
     .filter(dependency => dependency.rel === "nand")
     .map(normaliseSeparator);
+
+  return [allInvolvedNandKeys(nands), nands];
 };
 
 const makeRelations = (peers, relation, scanHistory) => {
@@ -48,8 +51,9 @@ const join = (dep_a, dep_b) => {
             if (![...accSet].some(s => subset(s, depsUnion))) {
               return insert(new Set([...accSet].filter(s => !superset(s, depsUnion))), depsUnion);
             }
-
             return accSet;
+
+            // return insert(accSet, depsUnion);
           }, set);
         }, new Set());
 

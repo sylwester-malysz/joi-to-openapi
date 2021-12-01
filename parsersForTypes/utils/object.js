@@ -14,8 +14,12 @@ const removeKeyFromObjectWithPath = (path, obj, state) => {
 
   if (_obj?.$ref) _obj = retrievePrintedReference(_obj, state.components);
   if (keys.length === 0 && _obj.properties[key]) {
+    _obj.required = (_obj.required ?? []).filter(k => k !== key);
+
     delete _obj.properties[key];
     if (Object.keys(_obj.properties).length === 0) delete _obj.properties;
+
+    if (_obj.required.length === 0) delete _obj.required;
 
     return _obj;
   }
@@ -50,10 +54,40 @@ const removeDuplicates = (obj, key) => {
   return obj;
 };
 
+const isRequiredField = (path, obj) => {
+  const [x, ...xs] = path;
+
+  if (x && obj?.properties && obj?.properties[x]) {
+    return (
+      (xs.length === 0 && (obj.required ?? []).includes(x)) ||
+      isRequiredField(xs, obj.properties[x])
+    );
+  }
+  return false;
+};
+
+const isFieldPresent = (path, obj) => {
+  const [x, ...xs] = path;
+
+  if (x && obj?.properties && obj?.properties[x]) {
+    return xs.length === 0 || isRequiredField(xs, obj.properties[x]);
+  }
+  return false;
+};
+
+const requiredFieldsFromList = (keys, obj) => {
+  return keys.reduce((acc, key) => {
+    if (isRequiredField(key.split("."), obj)) return [key, ...acc];
+    return acc;
+  }, []);
+};
+
 const processListOfObjects = (objs, key, path, state) =>
   removeDuplicates({ [key]: objs.map(_obj => removeKeyWithPath(path, _obj, state)) }, key);
 
-const processOptions = (path, obj, state) => {
+const removeKeyWithPath = (path, obj, state) => {
+  if (!obj) return undefined;
+
   if (obj.oneOf) {
     return processListOfObjects(obj.oneOf, "oneOf", path, state);
   }
@@ -64,12 +98,6 @@ const processOptions = (path, obj, state) => {
     return processListOfObjects(obj.allOf, "allOf", path, state);
   }
   return removeKeyFromObjectWithPath(path, obj, state);
-};
-
-const removeKeyWithPath = (path, obj, state) => {
-  if (!obj) return undefined;
-
-  return processOptions(path, obj, state);
 };
 
 const extractObjFromPath = (path, obj, store, state, convert) => {
@@ -85,7 +113,9 @@ const extractObjFromPath = (path, obj, store, state, convert) => {
       store,
       {
         type: "object",
-        ...(_obj.additionalProperties ? { additionalProperties: _obj.additionalProperties } : {}),
+        ...(typeof _obj.additionalProperties !== "undefined"
+          ? { additionalProperties: _obj.additionalProperties }
+          : {}),
         properties: {
           [key]: {
             ...extractObjFromPath(keys, _obj.properties[key], nest, state, convert)
@@ -121,5 +151,7 @@ module.exports = {
   removeKeyWithPath,
   extractObjFromPath,
   singleFieldObject,
-  removeDuplicates
+  removeDuplicates,
+  requiredFieldsFromList,
+  isFieldPresent
 };

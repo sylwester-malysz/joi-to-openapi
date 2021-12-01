@@ -12,6 +12,52 @@ chai.use(sinonChai);
 describe("Joi Object to OpenAPI", () => {
   beforeEach(() => {});
 
+  describe("When pattern is applied to the object", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object().pattern(Joi.string(), Joi.any());
+      expectedObj = {
+        type: "object",
+        additionalProperties: true
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When unknown is applied to the object", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object()
+        .keys({
+          code: Joi.string().valid("500", "300", "200"),
+          text: Joi.string()
+        })
+        .unknown();
+      expectedObj = {
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          code: {
+            type: "string",
+            enum: ["500", "300", "200"]
+          },
+          text: {
+            type: "string"
+          }
+        }
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
   describe("When xor is applied to the object", () => {
     describe("When is applied to the object", () => {
       let obj;
@@ -27,7 +73,7 @@ describe("Joi Object to OpenAPI", () => {
           .xor("code", "text");
 
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
@@ -75,7 +121,7 @@ describe("Joi Object to OpenAPI", () => {
           .xor("code", "id");
 
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
@@ -121,7 +167,7 @@ describe("Joi Object to OpenAPI", () => {
           .xor("name", "id");
 
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
@@ -194,7 +240,7 @@ describe("Joi Object to OpenAPI", () => {
           .xor("code.patch", "text");
 
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
@@ -253,7 +299,7 @@ describe("Joi Object to OpenAPI", () => {
           .xor("code,patch", "text", { separator: "," });
 
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
@@ -315,7 +361,7 @@ describe("Joi Object to OpenAPI", () => {
           })
           .xor("digit", "sequence");
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
@@ -429,52 +475,6 @@ describe("Joi Object to OpenAPI", () => {
     });
   });
 
-  describe("When pattern is applied to the object", () => {
-    let obj;
-    let expectedObj;
-
-    beforeEach(() => {
-      obj = Joi.object().pattern(Joi.string(), Joi.any());
-      expectedObj = {
-        type: "object",
-        additionalProperties: true
-      };
-    });
-
-    it("should convert the object in the proper open-api", () =>
-      expect(convert(obj)).deep.equal(expectedObj));
-  });
-
-  describe("When unknown is applied to the object", () => {
-    let obj;
-    let expectedObj;
-
-    beforeEach(() => {
-      obj = Joi.object()
-        .keys({
-          code: Joi.string().valid("500", "300", "200"),
-          text: Joi.string()
-        })
-        .unknown();
-      expectedObj = {
-        type: "object",
-        additionalProperties: true,
-        properties: {
-          code: {
-            type: "string",
-            enum: ["500", "300", "200"]
-          },
-          text: {
-            type: "string"
-          }
-        }
-      };
-    });
-
-    it("should convert the object in the proper open-api", () =>
-      expect(convert(obj)).deep.equal(expectedObj));
-  });
-
   describe("When nand is applied to the object", () => {
     describe("When is applied to the object", () => {
       let obj;
@@ -490,7 +490,7 @@ describe("Joi Object to OpenAPI", () => {
           .nand("code", "text");
 
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
@@ -539,7 +539,7 @@ describe("Joi Object to OpenAPI", () => {
           .nand("code", "name", "alpha");
 
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
@@ -586,7 +586,7 @@ describe("Joi Object to OpenAPI", () => {
           .nand("code", "id");
 
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
@@ -632,7 +632,7 @@ describe("Joi Object to OpenAPI", () => {
           .nand("name", "id");
 
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
@@ -705,7 +705,7 @@ describe("Joi Object to OpenAPI", () => {
           .nand("code.patch", "text");
 
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
@@ -748,6 +748,70 @@ describe("Joi Object to OpenAPI", () => {
         expect(convert(obj)).deep.equal(expectedObj));
     });
 
+    describe("When nand is applied to one required fields", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = Joi.object()
+          .keys({
+            id: Joi.string(),
+            code: Joi.object().keys({
+              patch: Joi.string().required()
+            }),
+            text: Joi.string()
+          })
+          .nand("code.patch", "text");
+
+        expectedObj = {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            id: {
+              type: "string"
+            },
+            code: {
+              additionalProperties: false,
+              type: "object",
+              properties: {
+                patch: {
+                  type: "string"
+                }
+              },
+              required: ["patch"]
+            }
+          }
+        };
+      });
+
+      it("should convert the object in the proper open-api", () =>
+        expect(convert(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When nand is applied to all required fields", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = Joi.object()
+          .keys({
+            id: Joi.string(),
+            code: Joi.object().keys({
+              patch: Joi.string().required()
+            }),
+            text: Joi.string().required()
+          })
+          .nand("code.patch", "text");
+
+        expectedObj = {
+          anyOf: []
+        };
+      });
+
+      it("should convert the object in the proper open-api", () =>
+        expect(convert(obj)).deep.equal(expectedObj));
+    });
+
     describe("When nested path with custom separator is provided", () => {
       let obj;
       let expectedObj;
@@ -764,7 +828,7 @@ describe("Joi Object to OpenAPI", () => {
           .nand("code,patch", "text", { separator: "," });
 
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
@@ -826,7 +890,7 @@ describe("Joi Object to OpenAPI", () => {
           })
           .nand("digit", "sequence");
         expectedObj = {
-          oneOf: [
+          anyOf: [
             {
               type: "object",
               additionalProperties: false,
