@@ -167,7 +167,7 @@ const isStringSubset = (str_1, str_2) => {
     valueOrPosInfinity(str_2.minLength) <= valueOrPosInfinity(str_1.minLength) &&
     valueOrNegInfinity(str_2.maxLength) >= valueOrNegInfinity(str_1.maxLength) &&
     str_2.pattern === str_1.pattern &&
-    subset(new Set(str_2.enum), new Set(str_1.enum))
+    subset(new Set(str_1.enum), new Set(str_2.enum))
   );
 };
 
@@ -187,7 +187,7 @@ const isArraySubset = (arr_1, arr_2) => {
 
   return (
     valueOrPosInfinity(arr_2) <= valueOrPosInfinity(arr_1) &&
-    arr_2.maxItems >= arr_1.maxItems &&
+    valueOrNegInfinity(arr_2) >= valueOrNegInfinity(arr_1) &&
     arr_1.items.every(item_1 => arr_2.items.some(item_2 => isSubsetOf(item_1, item_2)))
   );
 };

@@ -533,6 +533,82 @@ describe("Joi Object Utils", () => {
   });
 
   describe("isSubsetOf", () => {
+    describe("When string objects are evaluated", () => {
+      describe("When one enum being a subset of the other", () => {
+        let obj_1;
+        let obj_2;
+
+        beforeEach(() => {
+          obj_2 = {
+            type: "string",
+            enum: ["this", "is", "a", "test"]
+          };
+          obj_1 = {
+            type: "string",
+            enum: ["a", "test"]
+          };
+        });
+
+        it("should return return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
+      });
+
+      describe("When one with a greater minLength", () => {
+        let obj_1;
+        let obj_2;
+
+        beforeEach(() => {
+          obj_2 = {
+            type: "string",
+            minLength: 2
+          };
+          obj_1 = {
+            type: "string",
+            minLength: 10
+          };
+        });
+
+        it("should return return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
+      });
+
+      describe("When one with a lower maxLength", () => {
+        let obj_1;
+        let obj_2;
+
+        beforeEach(() => {
+          obj_2 = {
+            type: "string",
+            maxLength: 10
+          };
+          obj_1 = {
+            type: "string",
+            maxLength: 2
+          };
+        });
+
+        it("should return return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
+      });
+
+      describe("When one with a lower maxLength and a greater minLength", () => {
+        let obj_1;
+        let obj_2;
+
+        beforeEach(() => {
+          obj_2 = {
+            type: "string",
+            minLength: 2,
+            maxLength: 10
+          };
+          obj_1 = {
+            type: "string",
+            maxLength: 5,
+            minLength: 4
+          };
+        });
+
+        it("should return return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
+      });
+    });
+
     describe("When empty object is subset of any object", () => {
       let obj_1;
       let obj_2;
