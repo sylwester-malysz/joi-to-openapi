@@ -3,6 +3,7 @@ const deepcopy = require("deepcopy");
 const _ = require("lodash");
 const { retrievePrintedReference } = require("./reference");
 const { merge } = require("./merge");
+const { diff, subset } = require("./setUtils");
 
 const removeKeyFromObjectWithPath = (path, obj, state) => {
   if (obj.type !== "object")
@@ -147,11 +148,106 @@ const singleFieldObject = _obj => {
   return [[_obj], [""]];
 };
 
+const optionalAndRequiredKeys = obj => {
+  const currentRequired = new Set(obj.required ?? []);
+  const allKeys = new Set(Object.keys(obj.properties ?? []));
+
+  return [currentRequired, diff(allKeys, currentRequired)];
+};
+
+const valueOrNegInfinity = value => value ?? Number.NEGATIVE_INFINITY;
+const valueOrPosInfinity = value => value ?? Number.POSITIVE_INFINITY;
+
+const isStringSubset = (str_1, str_2) => {
+  // format, length , minLength , maxLength , pattern, enum
+
+  return (
+    str_2.format === str_1.format &&
+    valueOrNegInfinity(str_2.length) >= valueOrNegInfinity(str_1.length) &&
+    valueOrPosInfinity(str_2.minLength) <= valueOrPosInfinity(str_1.minLength) &&
+    valueOrNegInfinity(str_2.maxLength) >= valueOrNegInfinity(str_1.maxLength) &&
+    str_2.pattern === str_1.pattern &&
+    subset(new Set(str_2.enum), new Set(str_1.enum))
+  );
+};
+
+const isIntSubset = (int_1, int_2) => {
+  // format, minimum , maximum , enum
+
+  return (
+    int_2.format === int_1.format &&
+    int_2.minimum <= int_1.minimum &&
+    int_2.maximum >= int_1.maximum &&
+    subset(new Set(int_2.enum), new Set(int_1.enum))
+  );
+};
+
+const isArraySubset = (arr_1, arr_2) => {
+  // minItems, maxItems , items
+
+  return (
+    valueOrPosInfinity(arr_2) <= valueOrPosInfinity(arr_1) &&
+    arr_2.maxItems >= arr_1.maxItems &&
+    arr_1.items.every(item_1 => arr_2.items.some(item_2 => isSubsetOf(item_1, item_2)))
+  );
+};
+
+const isObjectSubset = (obj_1, obj_2) => {
+  const reqRelation = (a, b) => a === b;
+  const optRelation = (a, b) => a <= b;
+
+  const check = (list_1, list_2, f, g) =>
+    f(list_1.length, list_2.length) && list_1.every(opt_1 => list_2.some(opt_2 => g(opt_1, opt_2)));
+
+  const [requiredFields_1, optionalFields_1] = optionalAndRequiredKeys(obj_1);
+  const [requiredFields_2, optionalFields_2] = optionalAndRequiredKeys(obj_2);
+
+  const reqFieldList_1 = [...requiredFields_1];
+  const reqFieldList_2 = [...requiredFields_2];
+  const optFieldList_1 = [...optionalFields_1];
+  const optFieldList_2 = [...optionalFields_2];
+
+  const reqFieldsObj_1 = reqFieldList_1.map(key => obj_1.properties[key]);
+  const reqFieldsObj_2 = reqFieldList_2.map(key => obj_2.properties[key]);
+  const optFieldsObj_1 = optFieldList_1.map(key => obj_1.properties[key]);
+  const optFieldsObj_2 = optFieldList_2.map(key => obj_2.properties[key]);
+
+  return (
+    check(reqFieldList_1, reqFieldList_2, reqRelation, (a, b) => a === b) &&
+    check(optFieldList_1, optFieldList_2, optRelation, (a, b) => a === b) &&
+    check(reqFieldsObj_1, reqFieldsObj_2, reqRelation, isSubsetOf) &&
+    check(optFieldsObj_1, optFieldsObj_2, optRelation, isSubsetOf)
+  );
+};
+
+const isSubsetOf = (obj_1, obj_2) => {
+  if (obj_1.type !== obj_2.type) return false;
+
+  switch (obj_1.type) {
+    case "string":
+      return isStringSubset(obj_1, obj_2);
+    case "integer":
+    case "number":
+      return isIntSubset(obj_1, obj_2);
+    case "array":
+      return isArraySubset(obj_1, obj_2);
+    case "object":
+      return isObjectSubset(obj_1, obj_2);
+    case "boolean":
+      return true;
+    default:
+      // handle here oneOf/anyOf/allOf and $ref?
+      return false;
+  }
+};
+
 module.exports = {
   removeKeyWithPath,
   extractObjFromPath,
   singleFieldObject,
   removeDuplicates,
   requiredFieldsFromList,
-  isFieldPresent
+  optionalAndRequiredKeys,
+  isFieldPresent,
+  isSubsetOf
 };

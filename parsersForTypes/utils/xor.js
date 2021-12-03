@@ -1,9 +1,9 @@
 const {
   normaliseSeparator,
-  insert,
   computedNotAllowedRelation,
   allInvolvedNandKeys
 } = require("./alternativeRelations");
+const { insert } = require("./setUtils");
 
 const extract = joiSchema => {
   const nands = (joiSchema.$_terms.dependencies ?? [])

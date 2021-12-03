@@ -56,6 +56,7 @@ const addKeysAsRequired = (keys, obj) => {
 const makeView = (paths, obj, state, convert) =>
   paths.reduce((acc, p) => extractObjFromPath(p.split("."), obj, acc, state, convert), {});
 
+// TODO : check whether this can be replaced with isSubset function defined in utils/object.js
 const removeOverlapping = (list, paths, state, convert) => {
   const [head, ...tail] = list || [];
   if (!head) return [];

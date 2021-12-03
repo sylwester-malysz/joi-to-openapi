@@ -7,7 +7,6 @@ const {
   makeAlternativesFromOptions,
   merge,
   removeKeyWithPath,
-  removeDuplicates,
   extractNands,
   computedNandRelations,
   extractXors,
@@ -227,20 +226,16 @@ const parser = (joiSchema, state, convert) => {
 
   const [nandsKeys, nands] = extractNands(joiSchema);
   const [xorsKeys, xors] = extractXors(joiSchema);
-  const parsedObject = doNotAllowAdditionalProperties(
+  let parsedObject = doNotAllowAdditionalProperties(
     parserAux(joiSchema, state, convert),
     isAdditionalPropertiesEnabled
   );
 
   if (nands.length > 0) {
-    return unwrapSingleObject(
-      buildAlternatives(nands, nandsKeys, parsedObject, computedNandRelations, state)
-    );
+    parsedObject = buildAlternatives(nands, nandsKeys, parsedObject, computedNandRelations, state);
   }
   if (xors.length > 0) {
-    return unwrapSingleObject(
-      buildAlternatives(xors, xorsKeys, parsedObject, computedXorRelations, state)
-    );
+    parsedObject = buildAlternatives(xors, xorsKeys, parsedObject, computedXorRelations, state);
   }
 
   return unwrapSingleObject(parsedObject);

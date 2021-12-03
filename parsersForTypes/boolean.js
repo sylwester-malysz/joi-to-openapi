@@ -1,5 +1,5 @@
 const parser = () => ({
-  type: 'boolean',
+  type: "boolean"
 });
 
 module.exports = parser;

@@ -3,7 +3,7 @@ const chai = require("chai");
 const { expect } = chai;
 const chaiAsPromised = require("chai-as-promised");
 const sinonChai = require("sinon-chai");
-const { removeKeyWithPath } = require("../object");
+const { removeKeyWithPath, optionalAndRequiredKeys, isSubsetOf } = require("../object");
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -395,6 +395,217 @@ describe("Joi Object Utils", () => {
 
       it("should return the object with removed key", () =>
         expect(removeKeyWithPath(["id", "id"], obj, {})).deep.equal(expectedObj));
+    });
+  });
+
+  describe("optionalAndRequiredKeys", () => {
+    describe("When called with an empty object", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = {
+          type: "object"
+        };
+
+        expectedObj = [new Set(), new Set([])];
+      });
+
+      it("should return an empty set of required fields and a set of optional ones", () =>
+        expect(optionalAndRequiredKeys(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When called with object without required fields", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = {
+          type: "object",
+          properties: {
+            id: {
+              type: "string"
+            },
+            text: {
+              type: "string"
+            }
+          }
+        };
+
+        expectedObj = [new Set(), new Set(["id", "text"])];
+      });
+
+      it("should return an empty set of required fields and a set of optional ones", () =>
+        expect(optionalAndRequiredKeys(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When called with object required fields", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = {
+          type: "object",
+          properties: {
+            id: {
+              type: "string"
+            },
+            text: {
+              type: "string"
+            }
+          },
+          required: ["text"]
+        };
+
+        expectedObj = [new Set(["text"]), new Set(["id"])];
+      });
+
+      it("should return an empty set of required fields and a set of optional ones", () =>
+        expect(optionalAndRequiredKeys(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When called with object with nested object", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = {
+          type: "object",
+          properties: {
+            id: {
+              type: "string"
+            },
+            text: {
+              type: "string"
+            },
+            code: {
+              type: "object",
+              properties: {
+                id: {
+                  type: "string"
+                },
+                text: {
+                  type: "string"
+                }
+              },
+              required: ["text"]
+            }
+          },
+          required: ["text"]
+        };
+
+        expectedObj = [new Set(["text"]), new Set(["id", "code"])];
+      });
+
+      it("should return an empty set of required fields and a set of optional ones", () => {
+        const result = optionalAndRequiredKeys(obj);
+        return expect(result).deep.equal(expectedObj);
+      });
+    });
+
+    describe("When called with object with a required string and enum", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = {
+          type: "object",
+          properties: {
+            id: {
+              type: "string"
+            },
+            text: {
+              type: "string",
+              enum: ["value_1", "value_2"]
+            }
+          },
+          required: ["text"]
+        };
+
+        expectedObj = [new Set(["text"]), new Set(["id"])];
+      });
+
+      it("should return an empty set of required fields and a set of optional ones", () => {
+        const result = optionalAndRequiredKeys(obj);
+        return expect(result).deep.equal(expectedObj);
+      });
+    });
+  });
+
+  describe("isSubsetOf", () => {
+    describe("When empty object is subset of any object", () => {
+      let obj_1;
+      let obj_2;
+
+      beforeEach(() => {
+        obj_1 = {
+          type: "object"
+        };
+        obj_2 = {
+          type: "object",
+          properties: {
+            id: {
+              type: "string"
+            }
+          }
+        };
+      });
+
+      it("should return return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
+    });
+
+    describe("When identical objects are subset of each other", () => {
+      let obj_1;
+      let obj_2;
+
+      beforeEach(() => {
+        obj_1 = {
+          type: "object",
+          properties: {
+            id: {
+              type: "string"
+            }
+          }
+        };
+        obj_2 = {
+          type: "object",
+          properties: {
+            id: {
+              type: "string"
+            }
+          }
+        };
+      });
+
+      it("should return true for one direction", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
+
+      it("should return true for the other", () => expect(isSubsetOf(obj_2, obj_1)).to.be.true);
+    });
+
+    describe("When two objects are not subset of each other", () => {
+      let obj_1;
+      let obj_2;
+
+      beforeEach(() => {
+        obj_1 = {
+          type: "object",
+          properties: {
+            id: {
+              type: "string"
+            }
+          }
+        };
+        obj_2 = {
+          type: "object",
+          properties: {
+            code: {
+              type: "string"
+            }
+          }
+        };
+      });
+
+      it("should return false", () => expect(isSubsetOf(obj_1, obj_2)).to.be.false);
     });
   });
 });

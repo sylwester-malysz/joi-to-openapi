@@ -2,13 +2,10 @@
 const deepcopy = require("deepcopy");
 const {
   normaliseSeparator,
-  insert,
-  union,
-  subset,
-  superset,
   computedNotAllowedRelation,
   allInvolvedNandKeys
 } = require("./alternativeRelations");
+const { superset, subset, union, insert } = require("./setUtils");
 
 const extract = joiSchema => {
   const nands = (joiSchema.$_terms.dependencies ?? [])
