@@ -152,7 +152,7 @@ const optionalAndRequiredKeys = obj => {
   const currentRequired = new Set(obj.required ?? []);
   const allKeys = new Set(Object.keys(obj.properties ?? []));
 
-  return [currentRequired, diff(allKeys, currentRequired)];
+  return [[...currentRequired], [...diff(allKeys, currentRequired)]];
 };
 
 const valueOrNegInfinity = value => value ?? Number.NEGATIVE_INFINITY;
@@ -202,26 +202,27 @@ const isObjectSubset = (obj_1, obj_2) => {
   const [requiredFields_1, optionalFields_1] = optionalAndRequiredKeys(obj_1);
   const [requiredFields_2, optionalFields_2] = optionalAndRequiredKeys(obj_2);
 
-  const reqFieldList_1 = [...requiredFields_1];
-  const reqFieldList_2 = [...requiredFields_2];
-  const optFieldList_1 = [...optionalFields_1];
-  const optFieldList_2 = [...optionalFields_2];
-
-  const reqFieldsObj_1 = reqFieldList_1.map(key => obj_1.properties[key]);
-  const reqFieldsObj_2 = reqFieldList_2.map(key => obj_2.properties[key]);
-  const optFieldsObj_1 = optFieldList_1.map(key => obj_1.properties[key]);
-  const optFieldsObj_2 = optFieldList_2.map(key => obj_2.properties[key]);
-
   return (
-    check(reqFieldList_1, reqFieldList_2, reqRelation, (a, b) => a === b) &&
-    check(optFieldList_1, optFieldList_2, optRelation, (a, b) => a === b) &&
-    check(reqFieldsObj_1, reqFieldsObj_2, reqRelation, isSubsetOf) &&
-    check(optFieldsObj_1, optFieldsObj_2, optRelation, isSubsetOf)
+    check(requiredFields_1, requiredFields_2, reqRelation, (a, b) => a === b) &&
+    check(optionalFields_1, optionalFields_2, optRelation, (a, b) => a === b) &&
+    check(
+      requiredFields_1.map(key => obj_1.properties[key]),
+      requiredFields_2.map(key => obj_2.properties[key]),
+      reqRelation,
+      isSubsetOf
+    ) &&
+    check(
+      optionalFields_1.map(key => obj_1.properties[key]),
+      optionalFields_2.map(key => obj_2.properties[key]),
+      optRelation,
+      isSubsetOf
+    )
   );
 };
 
 const isSubsetOf = (obj_1, obj_2) => {
-  if (obj_1.type !== obj_2.type) return false;
+  const areRefObjs = obj_1.$ref !== undefined && obj_2.$ref !== undefined;
+  if (obj_1.type !== obj_2.type && !areRefObjs) return false;
 
   switch (obj_1.type) {
     case "string":
@@ -236,9 +237,23 @@ const isSubsetOf = (obj_1, obj_2) => {
     case "boolean":
       return true;
     default:
-      // handle here oneOf/anyOf/allOf and $ref?
+      if (areRefObjs) return obj_1.$ref === obj_2.$ref;
       return false;
   }
+};
+
+const removeSubsets = objs => {
+  const [head, ...tail] = objs ?? [];
+
+  if (!head) return [];
+
+  const noSubsetOfHead = removeSubsets(tail.filter(obj => !isSubsetOf(obj, head)));
+
+  if (noSubsetOfHead.some(obj => isSubsetOf(head, obj))) {
+    return noSubsetOfHead;
+  }
+
+  return [head, ...noSubsetOfHead];
 };
 
 module.exports = {
@@ -249,5 +264,6 @@ module.exports = {
   requiredFieldsFromList,
   optionalAndRequiredKeys,
   isFieldPresent,
-  isSubsetOf
+  isSubsetOf,
+  removeSubsets
 };

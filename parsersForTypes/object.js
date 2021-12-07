@@ -12,7 +12,8 @@ const {
   extractXors,
   computedXorRelations,
   requiredFieldsFromList,
-  isFieldPresent
+  isFieldPresent,
+  removeSubsets
 } = require("./utils");
 
 const wrapConditionInObject = (condition, objKey) => {
@@ -165,17 +166,13 @@ const buildAlternativesAux = (alternatives, keys, parsedObject, computeRelations
 
 const buildAlternatives = (alternatives, keys, parsedObject, computeRelations, state) => {
   const alts = obj => buildAlternativesAux(alternatives, keys, obj, computeRelations, state);
+  const anyOf = (
+    parsedObject.oneOf ??
+    parsedObject.anyOf ??
+    parsedObject.allOf ?? [parsedObject]
+  ).reduce((acc, obj) => [...acc, ...alts(obj)], []);
 
-  if (parsedObject.oneOf || parsedObject.anyOf || parsedObject.allOf) {
-    return {
-      anyOf: (parsedObject.oneOf ?? parsedObject.anyOf ?? parsedObject.allOf).reduce(
-        (acc, obj) => [...acc, ...alts(obj)],
-        []
-      )
-    };
-  }
-
-  return { anyOf: alts(parsedObject) };
+  return { anyOf: removeSubsets(anyOf) };
 };
 
 const doNotAllowAdditionalProperties = (parsedObject, additionalProperties) => {
@@ -226,19 +223,20 @@ const parser = (joiSchema, state, convert) => {
 
   const [nandsKeys, nands] = extractNands(joiSchema);
   const [xorsKeys, xors] = extractXors(joiSchema);
-  let parsedObject = doNotAllowAdditionalProperties(
+  const parsedObject = doNotAllowAdditionalProperties(
     parserAux(joiSchema, state, convert),
     isAdditionalPropertiesEnabled
   );
 
-  if (nands.length > 0) {
-    parsedObject = buildAlternatives(nands, nandsKeys, parsedObject, computedNandRelations, state);
-  }
-  if (xors.length > 0) {
-    parsedObject = buildAlternatives(xors, xorsKeys, parsedObject, computedXorRelations, state);
-  }
-
-  return unwrapSingleObject(parsedObject);
+  return unwrapSingleObject(
+    [
+      [nandsKeys, nands, computedNandRelations],
+      [xorsKeys, xors, computedXorRelations]
+    ].reduce((obj, [keys, alts, fn]) => {
+      if (alts.length > 0) return buildAlternatives(alts, keys, obj, fn, state);
+      return obj;
+    }, parsedObject)
+  );
 };
 
 module.exports = parser;

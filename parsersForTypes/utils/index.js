@@ -10,7 +10,8 @@ const {
   removeKeyWithPath,
   removeDuplicates,
   requiredFieldsFromList,
-  isFieldPresent
+  isFieldPresent,
+  removeSubsets
 } = require("./object");
 const {
   extract: extractNands,
@@ -99,5 +100,6 @@ module.exports = {
   computedXorRelations,
   removeDuplicates,
   requiredFieldsFromList,
-  isFieldPresent
+  isFieldPresent,
+  removeSubsets
 };

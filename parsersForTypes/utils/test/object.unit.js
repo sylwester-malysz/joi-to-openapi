@@ -3,7 +3,12 @@ const chai = require("chai");
 const { expect } = chai;
 const chaiAsPromised = require("chai-as-promised");
 const sinonChai = require("sinon-chai");
-const { removeKeyWithPath, optionalAndRequiredKeys, isSubsetOf } = require("../object");
+const {
+  removeKeyWithPath,
+  optionalAndRequiredKeys,
+  isSubsetOf,
+  removeSubsets
+} = require("../object");
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -408,7 +413,7 @@ describe("Joi Object Utils", () => {
           type: "object"
         };
 
-        expectedObj = [new Set(), new Set([])];
+        expectedObj = [[], []];
       });
 
       it("should return an empty set of required fields and a set of optional ones", () =>
@@ -432,7 +437,7 @@ describe("Joi Object Utils", () => {
           }
         };
 
-        expectedObj = [new Set(), new Set(["id", "text"])];
+        expectedObj = [[], ["id", "text"]];
       });
 
       it("should return an empty set of required fields and a set of optional ones", () =>
@@ -457,7 +462,7 @@ describe("Joi Object Utils", () => {
           required: ["text"]
         };
 
-        expectedObj = [new Set(["text"]), new Set(["id"])];
+        expectedObj = [["text"], ["id"]];
       });
 
       it("should return an empty set of required fields and a set of optional ones", () =>
@@ -494,7 +499,7 @@ describe("Joi Object Utils", () => {
           required: ["text"]
         };
 
-        expectedObj = [new Set(["text"]), new Set(["id", "code"])];
+        expectedObj = [["text"], ["id", "code"]];
       });
 
       it("should return an empty set of required fields and a set of optional ones", () => {
@@ -522,7 +527,7 @@ describe("Joi Object Utils", () => {
           required: ["text"]
         };
 
-        expectedObj = [new Set(["text"]), new Set(["id"])];
+        expectedObj = [["text"], ["id"]];
       });
 
       it("should return an empty set of required fields and a set of optional ones", () => {
@@ -549,7 +554,7 @@ describe("Joi Object Utils", () => {
           };
         });
 
-        it("should return return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
+        it("should return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
       });
 
       describe("When one with a greater minLength", () => {
@@ -567,7 +572,7 @@ describe("Joi Object Utils", () => {
           };
         });
 
-        it("should return return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
+        it("should return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
       });
 
       describe("When one with a lower maxLength", () => {
@@ -585,7 +590,7 @@ describe("Joi Object Utils", () => {
           };
         });
 
-        it("should return return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
+        it("should return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
       });
 
       describe("When one with a lower maxLength and a greater minLength", () => {
@@ -605,7 +610,7 @@ describe("Joi Object Utils", () => {
           };
         });
 
-        it("should return return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
+        it("should return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
       });
     });
 
@@ -627,7 +632,23 @@ describe("Joi Object Utils", () => {
         };
       });
 
-      it("should return return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
+      it("should return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
+    });
+
+    describe("When reference objects are compared", () => {
+      let obj_1;
+      let obj_2;
+
+      beforeEach(() => {
+        obj_1 = {
+          $ref: "test"
+        };
+        obj_2 = {
+          $ref: "test"
+        };
+      });
+
+      it("should return true", () => expect(isSubsetOf(obj_1, obj_2)).to.be.true);
     });
 
     describe("When identical objects are subset of each other", () => {
@@ -682,6 +703,94 @@ describe("Joi Object Utils", () => {
       });
 
       it("should return false", () => expect(isSubsetOf(obj_1, obj_2)).to.be.false);
+    });
+  });
+
+  describe("removeSubsets", () => {
+    describe("When list with subset objects is given", () => {
+      let obj;
+      let expected;
+
+      beforeEach(() => {
+        obj = [
+          {
+            type: "string",
+            enum: ["this", "is", "a", "test"]
+          },
+          {
+            type: "string",
+            enum: ["a", "test"]
+          },
+          {
+            type: "object",
+            properties: {
+              id: {
+                type: "string"
+              }
+            }
+          }
+        ];
+        expected = [
+          {
+            type: "string",
+            enum: ["this", "is", "a", "test"]
+          },
+          {
+            type: "object",
+            properties: {
+              id: {
+                type: "string"
+              }
+            }
+          }
+        ];
+      });
+
+      it("should return the list without subsets", () =>
+        expect(removeSubsets(obj)).to.be.deep.equal(expected));
+    });
+
+    describe("When list with subset objects is given", () => {
+      let obj;
+      let expected;
+
+      beforeEach(() => {
+        obj = [
+          {
+            type: "string",
+            enum: ["a", "test"]
+          },
+          {
+            type: "object",
+            properties: {
+              id: {
+                type: "string"
+              }
+            }
+          },
+          {
+            type: "string",
+            enum: ["this", "is", "a", "test"]
+          }
+        ];
+        expected = [
+          {
+            type: "object",
+            properties: {
+              id: {
+                type: "string"
+              }
+            }
+          },
+          {
+            type: "string",
+            enum: ["this", "is", "a", "test"]
+          }
+        ];
+      });
+
+      it("should return the list without subsets", () =>
+        expect(removeSubsets(obj)).to.be.deep.equal(expected));
     });
   });
 });

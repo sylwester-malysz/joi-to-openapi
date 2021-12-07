@@ -1,5 +1,4 @@
 const chai = require("chai");
-const util = require("util");
 
 const { expect } = chai;
 const Joi = require("joi");
@@ -59,7 +58,7 @@ describe("Joi Object to OpenAPI", () => {
       expect(convert(obj)).deep.equal(expectedObj));
   });
 
-  describe.skip("When xor and nand are applied to the object", () => {
+  describe("When xor and nand are applied to the object", () => {
     describe("When is applied to the object", () => {
       let obj;
       let expectedObj;
@@ -99,7 +98,6 @@ describe("Joi Object to OpenAPI", () => {
             }
           ]
         };
-        console.log(util.inspect(convert(obj), { showHidden: false, depth: null, colors: true }));
       });
 
       it("should convert the object in the proper open-api", () =>
