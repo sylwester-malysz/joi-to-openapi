@@ -219,7 +219,8 @@ const unwrapSingleObject = obj => {
 
 const parser = (joiSchema, state, convert) => {
   const isAdditionalPropertiesEnabled =
-    joiSchema._flags.unknown ?? joiSchema.$_terms.patterns?.length > 0;
+    joiSchema._flags.unknown ??
+    ((joiSchema.$_terms.keys ?? []).length === 0 || (joiSchema.$_terms.patterns ?? []).length > 0);
 
   const [nandsKeys, nands] = extractNands(joiSchema);
   const [xorsKeys, xors] = extractXors(joiSchema);

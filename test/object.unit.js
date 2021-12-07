@@ -12,6 +12,22 @@ chai.use(sinonChai);
 describe("Joi Object to OpenAPI", () => {
   beforeEach(() => {});
 
+  describe("When simple object is used", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object();
+      expectedObj = {
+        type: "object",
+        additionalProperties: true
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
   describe("When pattern is applied to the object", () => {
     let obj;
     let expectedObj;
