@@ -41,7 +41,7 @@ const getPattern = tests => {
 const mkString = (cond, values) => {
   let c;
   if (cond) {
-    if (cond.type != "any" && cond.type != "string")
+    if (cond.type !== "any" && cond.type !== "string")
       throw Error("cannot build alternative different of string or any");
     if (cond._flags.presence === "forbidden") return undefined;
     c = { type: "string" };

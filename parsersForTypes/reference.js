@@ -1,6 +1,6 @@
-const parser = (joiSchema) => {
+const parser = joiSchema => {
   return {
-    $ref: `#/components/${joiSchema._flags._ref.replace(":", "/")}`,
+    $ref: `#/components/${joiSchema._flags._ref.replace(":", "/")}`
   };
 };
 

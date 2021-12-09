@@ -7,9 +7,13 @@ const {
   makeAlternativesFromOptions,
   merge,
   removeKeyWithPath,
-  removeDuplicates,
   extractNands,
-  computedNotAllowedRelation
+  computedNandRelations,
+  extractXors,
+  computedXorRelations,
+  requiredFieldsFromList,
+  isFieldPresent,
+  removeSubsets
 } = require("./utils");
 
 const wrapConditionInObject = (condition, objKey) => {
@@ -141,46 +145,34 @@ const handleOptionalFormObject = (obj, state, convert) => {
   return obj;
 };
 
-const buildNandsAlternativesAux = (nands, parsedObject, state) => {
-  const notAllawedRealations = computedNotAllowedRelation(nands);
+const buildAlternativesAux = (alternatives, keys, parsedObject, computeRelations, state) => {
+  const notAllawedRealations = computeRelations(alternatives);
+  const requiredKeys = requiredFieldsFromList(keys, parsedObject);
+
+  // console.log(keys, requiredKeys, parsedObject);
 
   return [...notAllawedRealations].reduce((acc, notAllowedSet) => {
-    return [
-      ...acc,
-      [...notAllowedSet].reduce(
-        (obj, path) => removeKeyWithPath(path.split("."), obj, state),
-        parsedObject
-      )
-    ];
+    const reducedObject = [...notAllowedSet].reduce(
+      (obj, path) => removeKeyWithPath(path.split("."), obj, state),
+      parsedObject
+    );
+
+    if (requiredKeys.every(key => isFieldPresent(key.split("."), reducedObject)))
+      return [...acc, reducedObject];
+
+    return acc;
   }, []);
 };
 
-const buildNandsAlternatives = (nands, parsedObject, state) => {
-  if (parsedObject.oneOf) {
-    return {
-      oneOf: parsedObject.oneOf.reduce(
-        (acc, obj) => [...acc, ...buildNandsAlternativesAux(nands, obj, state)],
-        []
-      )
-    };
-  }
-  if (parsedObject.anyOf) {
-    return {
-      anyOf: parsedObject.anyOf.reduce(
-        (acc, obj) => [...acc, ...buildNandsAlternativesAux(nands, obj, state)],
-        []
-      )
-    };
-  }
-  if (parsedObject.allOf) {
-    return {
-      allOf: parsedObject.allOf.reduce(
-        (acc, obj) => [...acc, ...buildNandsAlternativesAux(nands, obj, state)],
-        []
-      )
-    };
-  }
-  return { oneOf: buildNandsAlternativesAux(nands, parsedObject, state) };
+const buildAlternatives = (alternatives, keys, parsedObject, computeRelations, state) => {
+  const alts = obj => buildAlternativesAux(alternatives, keys, obj, computeRelations, state);
+  const anyOf = (
+    parsedObject.oneOf ??
+    parsedObject.anyOf ??
+    parsedObject.allOf ?? [parsedObject]
+  ).reduce((acc, obj) => [...acc, ...alts(obj)], []);
+
+  return { anyOf: removeSubsets(anyOf) };
 };
 
 const doNotAllowAdditionalProperties = (parsedObject, additionalProperties) => {
@@ -218,18 +210,34 @@ const parserAux = (joiSchema, state, convert) => {
   return handleOptionalFormObject(obj, state, convert);
 };
 
+const unwrapSingleObject = obj => {
+  const multipleSelection = obj.oneOf ?? obj.anyOf ?? obj.allOf ?? [];
+  if (multipleSelection.length === 1) return multipleSelection[0];
+
+  return obj;
+};
+
 const parser = (joiSchema, state, convert) => {
-  const nands = extractNands(joiSchema);
-  let parsedObject = parserAux(joiSchema, state, convert);
-
-  if (nands.length > 0) {
-    parsedObject = removeDuplicates(buildNandsAlternatives(nands, parsedObject, state));
-  }
-
   const isAdditionalPropertiesEnabled =
-    joiSchema._flags.unknown ?? joiSchema.$_terms.patterns?.length > 0;
+    joiSchema._flags.unknown ??
+    ((joiSchema.$_terms.keys ?? []).length === 0 || (joiSchema.$_terms.patterns ?? []).length > 0);
 
-  return doNotAllowAdditionalProperties(parsedObject, isAdditionalPropertiesEnabled);
+  const [nandsKeys, nands] = extractNands(joiSchema);
+  const [xorsKeys, xors] = extractXors(joiSchema);
+  const parsedObject = doNotAllowAdditionalProperties(
+    parserAux(joiSchema, state, convert),
+    isAdditionalPropertiesEnabled
+  );
+
+  return unwrapSingleObject(
+    [
+      [nandsKeys, nands, computedNandRelations],
+      [xorsKeys, xors, computedXorRelations]
+    ].reduce((obj, [keys, alts, fn]) => {
+      if (alts.length > 0) return buildAlternatives(alts, keys, obj, fn, state);
+      return obj;
+    }, parsedObject)
+  );
 };
 
 module.exports = parser;

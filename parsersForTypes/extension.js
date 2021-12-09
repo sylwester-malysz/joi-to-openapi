@@ -1,14 +1,11 @@
-const inheritedTypes = (obj) =>
-  Object.keys(obj._definition.messages).reduce(
-    (acc, key) => acc.add(key.split(".")[0]),
-    new Set()
-  );
+const inheritedTypes = obj =>
+  Object.keys(obj._definition.messages).reduce((acc, key) => acc.add(key.split(".")[0]), new Set());
 
-const inferType = (obj) => {
+const inferType = obj => {
   const possibleTypes = inheritedTypes(obj);
   const definition = obj._definition;
   if (definition) {
-    const rules = definition.rules;
+    const { rules } = definition;
     if (rules.try && possibleTypes.has("alternatives")) return "alternatives";
     if (rules.uppercase && possibleTypes.has("string")) return "string";
     if (rules.keys && possibleTypes.has("object")) return "object";
@@ -20,11 +17,14 @@ const inferType = (obj) => {
     if (rules.alternative && possibleTypes.has("opt")) return "opt";
     return "any";
   }
+
+  return undefined;
 };
 
 const parser = (joiSchema, state, convert) => {
-  joiSchema.type = inferType(joiSchema);
-  return convert(joiSchema, state);
+  const processingSchema = joiSchema;
+  processingSchema.type = inferType(joiSchema);
+  return convert(processingSchema, state);
 };
 
 module.exports = parser;

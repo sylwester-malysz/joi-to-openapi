@@ -1,129 +1,73 @@
+/* eslint-disable no-unused-vars */
 const deepcopy = require("deepcopy");
+const {
+  normaliseSeparator,
+  computedNotAllowedRelation,
+  allInvolvedNandKeys
+} = require("./alternativeRelations");
+const { superset, subset, union, insert } = require("./setUtils");
 
-const escapeSepToRegExp = sep => {
-  if (sep === ".") return "\\.";
-
-  return sep;
-};
-
-const normaliseSeparator = _nand => {
-  const nand = _nand;
-  nand.peers = nand.peers.map(_peer => {
-    const peer = _peer;
-    peer.key = peer.key.replace(new RegExp(escapeSepToRegExp(peer.separator), "g"), ".");
-    return peer;
-  });
-  return nand;
-};
-
-const extractNands = joiSchema => {
-  return (joiSchema.$_terms.dependencies ?? [])
+const extract = joiSchema => {
+  const nands = (joiSchema.$_terms.dependencies ?? [])
     .filter(dependency => dependency.rel === "nand")
     .map(normaliseSeparator);
+
+  return [allInvolvedNandKeys(nands), nands];
 };
 
-const removeKey = (obj, key) => {
-  const copy = deepcopy(obj);
-  delete copy[key];
-  return copy;
-};
-
-const setEquality = (as, bs) => {
-  if (as.size !== bs.size) return false;
-  return [...as].every(elm => {
-    if (elm instanceof Set) {
-      return [...bs].some(setElm => setEquality(elm, setElm));
-    }
-
-    return bs.has(elm);
-  });
-};
-
-const eqContains = (as, bs) => {
-  if (bs instanceof Set) {
-    return [...as].some(elm => setEquality(bs, elm));
-  }
-
-  return as.has(bs);
-};
-
-const insert = (set, elm) => {
-  if (!eqContains(set, elm)) set.add(elm);
-
-  return set;
-};
-
-const union = (setA, setB) => {
-  return [...setB].reduce((set, elm) => insert(set, elm), new Set(setA));
-};
-
-const makeRelations = (peers, relation, mem) => {
+const makeRelations = (peers, relation, scanHistory) => {
   const [head, ...tail] = peers;
 
-  if (!head) return [relation, mem];
+  if (!head) return [relation, scanHistory];
 
-  const setElement = head.path.join(".");
+  const setElement = head.key;
+  const [pastScan, futureScan] = scanHistory;
 
-  const [relations, future] = makeRelations(tail, relation, [[...mem[0], setElement], mem[1]]);
+  const [relations, [_, future]] = makeRelations(tail, relation, [
+    [...pastScan, setElement],
+    futureScan
+  ]);
 
   if (!relations[head.key]) {
-    relations[head.key] = new Set([new Set([...mem[0], ...future[1]])]);
+    relations[head.key] = new Set([...pastScan, ...future].map(x => new Set([x])));
   }
 
-  [...mem[0], ...future[1]].forEach(
-    elm => new Set([...relations[head.key]].map(set => insert(set, elm)))
-  );
+  [...pastScan, ...future].forEach(elm => insert(relations[head.key], new Set([elm])));
 
-  return [relations, [mem[0], [setElement, ...future[1]]]];
+  return [relations, [pastScan, [setElement, ...future]]];
 };
 
-const makeDependencies = nands =>
-  nands.reduce((storeAcc, nand) => {
-    return makeRelations(nand.peers, storeAcc, [[], []])[0];
+const join = (dep_a, dep_b) => {
+  const joinedDeps = Object.entries(dep_a).reduce((accDep, [key, deps]) => {
+    const dep = accDep;
+    dep[key] = !dep[key]
+      ? deps
+      : [...dep[key]].reduce((set, setDeps) => {
+          return [...deps].reduce((accSet, _deps) => {
+            const depsUnion = union(_deps, setDeps);
+            if (![...accSet].some(s => subset(s, depsUnion))) {
+              return insert(new Set([...accSet].filter(s => !superset(s, depsUnion))), depsUnion);
+            }
+            return accSet;
+
+            // return insert(accSet, depsUnion);
+          }, set);
+        }, new Set());
+
+    return dep;
+  }, deepcopy(dep_b));
+
+  return joinedDeps;
+};
+
+const makeDependencies = peersContainers =>
+  peersContainers.reduce((storeAcc, peersContainer) => {
+    return join(makeRelations(peersContainer.peers, {}, [[], []])[0], storeAcc);
   }, {});
-
-const computeDependenciesForKey = (globalDependecies, instanceDependencies) => {
-  const allowedDependencies = [...instanceDependencies].reduce(
-    (acc, key) => removeKey(acc, key),
-    globalDependecies
-  );
-
-  const depsToProcess = Object.entries(allowedDependencies);
-
-  if (depsToProcess.length === 0) return new Set([instanceDependencies]);
-
-  return depsToProcess.reduce((acc, [key, deps]) => {
-    const newDeps = union(instanceDependencies, [...deps][0]);
-    const allDeps = computeDependenciesForKey(removeKey(allowedDependencies, key), newDeps);
-    return [...allDeps].reduce((set, element) => insert(set, element), acc);
-  }, new Set());
-};
-
-const makeFullDependencies = dependencies => {
-  const computedDeps = Object.entries(dependencies).reduce((acc, [key, deps]) => {
-    acc[key] = [...deps].reduce((set, dep) => {
-      const depSet = computeDependenciesForKey(removeKey(dependencies, key), dep);
-      return [...depSet].reduce((accSet, elm) => insert(accSet, elm), set);
-    }, new Set());
-
-    return acc;
-  }, {});
-
-  return computedDeps;
-};
-
-const computedNotAllowedRelation = nands => {
-  const dependencies = makeFullDependencies(makeDependencies(nands));
-  return Object.values(dependencies).reduce((setAcc, setOfDeps) => {
-    return [...setOfDeps].reduce((set, dep) => insert(set, dep), setAcc);
-  }, new Set());
-};
 
 module.exports = {
   makeDependencies,
-  makeFullDependencies,
-  extractNands,
-  setEquality,
-  insert,
-  computedNotAllowedRelation
+  extract,
+  join,
+  computedNotAllowedRelation: nands => computedNotAllowedRelation(nands, makeDependencies)
 };
