@@ -1,4 +1,3 @@
-/* eslint-disable no-extend-native */
 const deepcopy = require("deepcopy");
 const _ = require("lodash");
 const { retrieveReferenceByName } = require("./reference");
@@ -7,17 +6,7 @@ const { merge, mergeDiff } = require("./merge");
 const { overlapping } = require("./overlapping");
 const { diff } = require("./difference");
 const { extractObjFromPath, singleFieldObject } = require("./object");
-
-Array.prototype.equals = function (lst) {
-  const [head, ...tail] = this;
-  const [head1, ...tail1] = lst;
-  if (tail.length === 0 && tail1.length === 0) return head === head1;
-  return head === head1 && tail.equals(tail1);
-};
-
-Array.prototype.diff = function (lst) {
-  return _.difference(this, lst);
-};
+const { diff: arrayDiff } = require("./array");
 
 const missingKeys = (paths, obj) => {
   return paths.reduce((accumulator, path) => {
@@ -89,12 +78,12 @@ const makeOptions = (peek, then, otherwise, state, convert) => {
 
   const zipNegativeAndKeys = _.zip(negativeOptions, [missingKey, ...keys]);
   const negativeAlternatives = zipNegativeAndKeys.reduce((acc, [obj, allKeys]) => {
-    return [...acc, addKeysAsRequired(allNegativeMissingKeys.diff(allKeys), obj)];
+    return [...acc, addKeysAsRequired(arrayDiff(allNegativeMissingKeys, allKeys), obj)];
   }, []);
 
   return {
     oneOf: [
-      addKeysAsRequired(allNegativeMissingKeys.diff(positiveMissingKeys), positionOption),
+      addKeysAsRequired(arrayDiff(allNegativeMissingKeys, positiveMissingKeys), positionOption),
       ...removeOverlapping(negativeAlternatives, falsePaths, state, convert)
     ]
   };
@@ -119,7 +108,11 @@ const buildAlternative = (lst, originalObj, state, convert) => {
 
     return merge(acc, _toMerge, state, convert);
   }, deepcopy(originalObj));
-  if (newObj.required) newObj.required = newObj.required.diff(noOpts.map(o => o.key));
+  if (newObj.required)
+    newObj.required = arrayDiff(
+      newObj.required,
+      noOpts.map(o => o.key)
+    );
   return newObj;
 };
 
@@ -297,8 +290,8 @@ const overwriteRequired = (obj1, obj2) => {
   let { required } = _obj1;
   if (required) {
     const allKeys = Object.keys(_obj2.properties);
-    const noRequiredKeys = _.difference(allKeys, _obj2.required || []);
-    const newRequired = _.difference(required, noRequiredKeys);
+    const noRequiredKeys = arrayDiff(allKeys, _obj2.required || []);
+    const newRequired = arrayDiff(required, noRequiredKeys);
     if (newRequired.length > 0) required = newRequired;
   }
 

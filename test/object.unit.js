@@ -101,7 +101,13 @@ describe("Joi Object to OpenAPI", () => {
                 text: {
                   type: "string"
                 }
-              }
+              },
+              required: ["text"]
+            },
+            {
+              type: "object",
+              properties: { id: { type: "string" } },
+              additionalProperties: false
             },
             {
               type: "object",
@@ -110,7 +116,8 @@ describe("Joi Object to OpenAPI", () => {
                 code: {
                   type: "string"
                 }
-              }
+              },
+              required: ["code"]
             }
           ]
         };
@@ -147,7 +154,8 @@ describe("Joi Object to OpenAPI", () => {
                 text: {
                   type: "string"
                 }
-              }
+              },
+              required: ["text"]
             },
             {
               type: "object",
@@ -159,7 +167,8 @@ describe("Joi Object to OpenAPI", () => {
                 code: {
                   type: "string"
                 }
-              }
+              },
+              required: ["code"]
             }
           ]
         };
@@ -195,7 +204,8 @@ describe("Joi Object to OpenAPI", () => {
                 text: {
                   type: "string"
                 }
-              }
+              },
+              required: ["id", "text"]
             },
             {
               type: "object",
@@ -204,7 +214,61 @@ describe("Joi Object to OpenAPI", () => {
                 code: {
                   type: "string"
                 }
-              }
+              },
+              required: ["code"]
+            }
+          ]
+        };
+      });
+
+      it("should convert the object in the proper open-api", () =>
+        expect(convert(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When sequence of xors with shared key is applied to the object", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = Joi.object()
+          .keys({
+            id: Joi.string(),
+            code: Joi.string(),
+            text: Joi.string()
+          })
+          .xor("code", "text", "id");
+
+        expectedObj = {
+          anyOf: [
+            {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string"
+                }
+              },
+              required: ["id"]
+            },
+            {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                text: {
+                  type: "string"
+                }
+              },
+              required: ["text"]
+            },
+            {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                code: {
+                  type: "string"
+                }
+              },
+              required: ["code"]
             }
           ]
         };
@@ -241,7 +305,8 @@ describe("Joi Object to OpenAPI", () => {
                 text: {
                   type: "string"
                 }
-              }
+              },
+              required: ["id", "text"]
             },
             {
               type: "object",
@@ -253,7 +318,8 @@ describe("Joi Object to OpenAPI", () => {
                 text: {
                   type: "string"
                 }
-              }
+              },
+              required: ["name", "text"]
             },
             {
               type: "object",
@@ -265,7 +331,8 @@ describe("Joi Object to OpenAPI", () => {
                 code: {
                   type: "string"
                 }
-              }
+              },
+              required: ["id", "code"]
             },
             {
               type: "object",
@@ -277,7 +344,8 @@ describe("Joi Object to OpenAPI", () => {
                 code: {
                   type: "string"
                 }
-              }
+              },
+              required: ["name", "code"]
             }
           ]
         };
@@ -318,7 +386,8 @@ describe("Joi Object to OpenAPI", () => {
                   additionalProperties: false,
                   type: "object"
                 }
-              }
+              },
+              required: ["text"]
             },
             {
               type: "object",
@@ -334,7 +403,8 @@ describe("Joi Object to OpenAPI", () => {
                     patch: {
                       type: "string"
                     }
-                  }
+                  },
+                  required: ["patch"]
                 }
               }
             }
@@ -377,7 +447,8 @@ describe("Joi Object to OpenAPI", () => {
                   type: "object",
                   additionalProperties: false
                 }
-              }
+              },
+              required: ["text"]
             },
             {
               type: "object",
@@ -393,7 +464,8 @@ describe("Joi Object to OpenAPI", () => {
                     patch: {
                       type: "string"
                     }
-                  }
+                  },
+                  required: ["patch"]
                 }
               }
             }
@@ -452,7 +524,7 @@ describe("Joi Object to OpenAPI", () => {
                   enum: ["in"]
                 }
               },
-              required: ["method", "duration"]
+              required: ["sequence", "method", "duration"]
             },
             {
               type: "object",
@@ -482,7 +554,7 @@ describe("Joi Object to OpenAPI", () => {
                   enum: ["in"]
                 }
               },
-              required: ["method", "duration"]
+              required: ["digit", "method", "duration"]
             },
             {
               type: "object",
@@ -503,7 +575,8 @@ describe("Joi Object to OpenAPI", () => {
                 sequence: {
                   type: "integer"
                 }
-              }
+              },
+              required: ["sequence"]
             },
             {
               type: "object",
@@ -525,7 +598,8 @@ describe("Joi Object to OpenAPI", () => {
                     }
                   ]
                 }
-              }
+              },
+              required: ["digit"]
             }
           ]
         };

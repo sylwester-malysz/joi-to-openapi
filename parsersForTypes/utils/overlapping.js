@@ -1,6 +1,7 @@
 /* eslint-disable no-use-before-define */
 const deepcopy = require("deepcopy");
 const { retrievePrintedReference } = require("./reference");
+const { diff } = require("./array");
 
 const overlapping = (obj1, obj2, state, convert) => {
   const _obj1 = deepcopy(obj1);
@@ -24,7 +25,7 @@ const diffObject = (obj1, obj2, state, convert) => {
       const propertyKey = acc[k];
       if (propertyKey) {
         const child = overlapping(propertyKey, v, state, convert);
-        const _req = req && !child ? req.diff([k]) : req;
+        const _req = req && !child ? diff(req, [k]) : req;
         delete acc[k];
         return child
           ? [
@@ -47,7 +48,7 @@ const diffObject = (obj1, obj2, state, convert) => {
 const stringDiff = (obj1, obj2) => {
   if (!obj1.enum && !obj2.enum) return obj1;
 
-  const remainingItems = obj1.enum.diff(obj2.enum || []);
+  const remainingItems = diff(obj1.enum, obj2.enum ?? []);
   if (remainingItems.length === 0) {
     return obj1;
   }

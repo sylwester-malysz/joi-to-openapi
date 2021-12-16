@@ -1,6 +1,7 @@
 /* eslint-disable no-use-before-define */
 const deepcopy = require("deepcopy");
 const { retrievePrintedReference } = require("./reference");
+const { diff: arrayDiff } = require("./array");
 
 const diff = (obj1, obj2, state, convert) => {
   const _obj1 = deepcopy(obj1);
@@ -24,7 +25,7 @@ const diffObject = (obj1, obj2, state, convert) => {
       const propertyKey = acc[k];
       if (propertyKey) {
         const child = diff(propertyKey, v, state, convert);
-        const _req = req && !child ? req.diff([k]) : req;
+        const _req = req && !child ? arrayDiff(req, [k]) : req;
         delete acc[k];
         return child
           ? [
@@ -50,7 +51,7 @@ const stringDiff = (obj1, obj2) => {
     const oldEnum = obj1.not ? obj1.not.enum || [] : [];
     return { ...obj1, not: { enum: [...oldEnum, ...obj2.enum] } };
   }
-  const remainingItems = obj1.enum.diff(obj2.enum || []);
+  const remainingItems = arrayDiff(obj1.enum, obj2.enum ?? []);
   if (remainingItems.length === 0) {
     return undefined;
   }

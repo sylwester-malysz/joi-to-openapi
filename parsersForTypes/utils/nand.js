@@ -6,6 +6,7 @@ const {
   allInvolvedNandKeys
 } = require("./alternativeRelations");
 const { superset, subset, union, insert } = require("./setUtils");
+const { removeKeyWithPath, requiredFieldsFromList, isFieldPresent } = require("./object");
 
 const extract = joiSchema => {
   const nands = (joiSchema.$_terms.dependencies ?? [])
@@ -65,7 +66,25 @@ const makeDependencies = peersContainers =>
     return join(makeRelations(peersContainer.peers, {}, [[], []])[0], storeAcc);
   }, {});
 
+const buildAlternatives = (alternatives, keys, parsedObject, state) => {
+  const notAllawedRealations = computedNotAllowedRelation(alternatives, makeDependencies);
+  const requiredKeys = requiredFieldsFromList(keys, parsedObject);
+
+  return [...notAllawedRealations].reduce((acc, notAllowedSet) => {
+    const reducedObject = [...notAllowedSet].reduce(
+      (obj, path) => removeKeyWithPath(path.split("."), obj, state),
+      parsedObject
+    );
+
+    if (requiredKeys.every(key => isFieldPresent(key.split("."), reducedObject)))
+      return [...acc, reducedObject];
+
+    return acc;
+  }, []);
+};
+
 module.exports = {
+  buildAlternatives,
   makeDependencies,
   extract,
   join,

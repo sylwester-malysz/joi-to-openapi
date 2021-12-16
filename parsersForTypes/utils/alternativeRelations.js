@@ -47,15 +47,17 @@ const computeDependenciesForKey = (processingKey, globalDependecies, instanceDep
   return depsToProcess.reduce((acc, [key, deps]) => {
     const newDeps = union(instanceDependencies, [...deps][0]);
     const allDeps = computeDependenciesForKey(key, removeKey(allowedDependencies, key), newDeps);
-    return [...allDeps].reduce((set, element) => insert(set, element), acc);
+    return [...allDeps].reduce(insert, acc);
   }, new Set());
 };
 
 const makeFullDependencies = dependencies => {
   const computedDeps = Object.entries(dependencies).reduce((acc, [key, deps]) => {
     acc[key] = [...deps].reduce((set, dep) => {
-      const depSet = computeDependenciesForKey(key, removeKey(dependencies, key), dep);
-      return [...depSet].reduce((accSet, elm) => insert(accSet, elm), set);
+      return [...computeDependenciesForKey(key, removeKey(dependencies, key), dep)].reduce(
+        insert,
+        set
+      );
     }, new Set());
 
     return acc;

@@ -83,6 +83,25 @@ const requiredFieldsFromList = (keys, obj) => {
   }, []);
 };
 
+const maybeMarkAsRequired = (path, object) => {
+  const [propKey, ...rest] = path ?? [];
+  const _object = object;
+
+  const next = _object.properties[propKey];
+  if (rest.length === 0 && next) {
+    _object.required = [propKey, ...(_object.required ?? []).filter(k => k !== propKey)];
+    return _object;
+  }
+
+  if (next)
+    return {
+      ..._object,
+      properties: { ...(_object.properties ?? {}), [propKey]: maybeMarkAsRequired(rest, next) }
+    };
+
+  return _object;
+};
+
 const processListOfObjects = (objs, key, path, state) =>
   removeDuplicates({ [key]: objs.map(_obj => removeKeyWithPath(path, _obj, state)) }, key);
 
@@ -265,5 +284,6 @@ module.exports = {
   optionalAndRequiredKeys,
   isFieldPresent,
   isSubsetOf,
-  removeSubsets
+  removeSubsets,
+  maybeMarkAsRequired
 };

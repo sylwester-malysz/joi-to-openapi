@@ -12,7 +12,7 @@ describe("Joi Xor Utils", () => {
   beforeEach(() => {});
 
   describe("makeDependencies", () => {
-    describe("When called with nands dependences", () => {
+    describe("When called with xor dependences", () => {
       let obj;
       let expectedObj;
 
@@ -37,6 +37,32 @@ describe("Joi Xor Utils", () => {
           text: new Set([new Set(["code"])]),
           id: new Set([new Set(["name"])]),
           name: new Set([new Set(["id"])])
+        };
+      });
+
+      it("should return the dependency object", () =>
+        expect(makeDependencies(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When more than 2 keys are involved", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = [
+          {
+            peers: [
+              { path: ["id"], key: "id" },
+              { path: ["code"], key: "code" },
+              { path: ["text"], key: "text" }
+            ]
+          }
+        ];
+
+        expectedObj = {
+          code: new Set([new Set(["id", "text"])]),
+          text: new Set([new Set(["id", "code"])]),
+          id: new Set([new Set(["code", "text"])])
         };
       });
 
@@ -169,7 +195,33 @@ describe("Joi Xor Utils", () => {
         expect(computedNotAllowedRelation(obj)).deep.equal(expectedObj));
     });
 
-    describe("When called with nands dependences", () => {
+    describe("When more than 2 keys are involved", () => {
+      let obj;
+      let expectedObj;
+
+      beforeEach(() => {
+        obj = [
+          {
+            peers: [
+              { path: ["id"], key: "id" },
+              { path: ["code"], key: "code" },
+              { path: ["text"], key: "text" }
+            ]
+          }
+        ];
+
+        expectedObj = new Set([
+          new Set(["id", "code"]),
+          new Set(["id", "text"]),
+          new Set(["code", "text"])
+        ]);
+      });
+
+      it("should return the dependency object", () =>
+        expect(computedNotAllowedRelation(obj)).deep.equal(expectedObj));
+    });
+
+    describe("When called with xor dependences", () => {
       let obj;
       let expectedObj;
 

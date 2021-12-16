@@ -13,11 +13,8 @@ const {
   isFieldPresent,
   removeSubsets
 } = require("./object");
-const {
-  extract: extractNands,
-  computedNotAllowedRelation: computedNandRelations
-} = require("./nand");
-const { extract: extractXors, computedNotAllowedRelation: computedXorRelations } = require("./xor");
+const { extract: extractNands, buildAlternatives: buildNandAlternatives } = require("./nand");
+const { extract: extractXors, buildAlternatives: buildXorAlternatives } = require("./xor");
 
 const getBodyObjKey = condition => {
   if ("oneOf" in condition) return { oneOf: condition.oneOf };
@@ -95,11 +92,11 @@ module.exports = {
   mergeDiff,
   removeKeyWithPath,
   extractNands,
-  computedNandRelations,
   extractXors,
-  computedXorRelations,
   removeDuplicates,
   requiredFieldsFromList,
   isFieldPresent,
-  removeSubsets
+  removeSubsets,
+  buildNandAlternatives,
+  buildXorAlternatives
 };

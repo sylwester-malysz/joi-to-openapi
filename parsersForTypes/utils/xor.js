@@ -5,6 +5,14 @@ const {
 } = require("./alternativeRelations");
 const { insert } = require("./setUtils");
 
+const {
+  removeKeyWithPath,
+  requiredFieldsFromList,
+  isFieldPresent,
+  maybeMarkAsRequired
+} = require("./object");
+const { diff } = require("./array");
+
 const extract = joiSchema => {
   const nands = (joiSchema.$_terms.dependencies ?? [])
     .filter(dependency => dependency.rel === "xor")
@@ -38,8 +46,33 @@ const makeDependencies = peersContainers =>
     return makeRelations(peersContainer.peers, storeAcc, [[], []])[0];
   }, {});
 
+const buildAlternatives = (alternatives, keys, parsedObject, state) => {
+  const notAllawedRealations = computedNotAllowedRelation(alternatives, makeDependencies);
+  const requiredKeys = requiredFieldsFromList(keys, parsedObject);
+
+  return [...notAllawedRealations].reduce((acc, notAllowedSet) => {
+    const notAllowedKeys = [...notAllowedSet];
+    const reducedObject = notAllowedKeys.reduce(
+      (obj, path) => removeKeyWithPath(path.split("."), obj, state),
+      parsedObject
+    );
+
+    if (requiredKeys.every(key => isFieldPresent(key.split("."), reducedObject)))
+      return [
+        ...acc,
+        diff(keys, notAllowedKeys).reduce(
+          (obj, requiredKeyPath) => maybeMarkAsRequired(requiredKeyPath.split("."), obj),
+          reducedObject
+        )
+      ];
+
+    return acc;
+  }, []);
+};
+
 module.exports = {
+  buildAlternatives,
   makeDependencies,
   extract,
-  computedNotAllowedRelation: nands => computedNotAllowedRelation(nands, makeDependencies)
+  computedNotAllowedRelation: xors => computedNotAllowedRelation(xors, makeDependencies)
 };

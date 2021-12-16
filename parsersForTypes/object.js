@@ -6,14 +6,11 @@ const {
   maybeOptionsFromWhens,
   makeAlternativesFromOptions,
   merge,
-  removeKeyWithPath,
   extractNands,
-  computedNandRelations,
   extractXors,
-  computedXorRelations,
-  requiredFieldsFromList,
-  isFieldPresent,
-  removeSubsets
+  removeSubsets,
+  buildNandAlternatives,
+  buildXorAlternatives
 } = require("./utils");
 
 const wrapConditionInObject = (condition, objKey) => {
@@ -145,27 +142,8 @@ const handleOptionalFormObject = (obj, state, convert) => {
   return obj;
 };
 
-const buildAlternativesAux = (alternatives, keys, parsedObject, computeRelations, state) => {
-  const notAllawedRealations = computeRelations(alternatives);
-  const requiredKeys = requiredFieldsFromList(keys, parsedObject);
-
-  // console.log(keys, requiredKeys, parsedObject);
-
-  return [...notAllawedRealations].reduce((acc, notAllowedSet) => {
-    const reducedObject = [...notAllowedSet].reduce(
-      (obj, path) => removeKeyWithPath(path.split("."), obj, state),
-      parsedObject
-    );
-
-    if (requiredKeys.every(key => isFieldPresent(key.split("."), reducedObject)))
-      return [...acc, reducedObject];
-
-    return acc;
-  }, []);
-};
-
 const buildAlternatives = (alternatives, keys, parsedObject, computeRelations, state) => {
-  const alts = obj => buildAlternativesAux(alternatives, keys, obj, computeRelations, state);
+  const alts = obj => computeRelations(alternatives, keys, obj, state);
   const anyOf = (
     parsedObject.oneOf ??
     parsedObject.anyOf ??
@@ -231,8 +209,8 @@ const parser = (joiSchema, state, convert) => {
 
   return unwrapSingleObject(
     [
-      [nandsKeys, nands, computedNandRelations],
-      [xorsKeys, xors, computedXorRelations]
+      [nandsKeys, nands, buildNandAlternatives],
+      [xorsKeys, xors, buildXorAlternatives]
     ].reduce((obj, [keys, alts, fn]) => {
       if (alts.length > 0) return buildAlternatives(alts, keys, obj, fn, state);
       return obj;
