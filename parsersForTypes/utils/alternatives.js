@@ -208,48 +208,49 @@ const getStoredKeyFromOption = (_option, objChildren, state, convert) => {
   return option;
 };
 
-const isExistenceCondition = obj => obj.type === "string" && !obj.enum;
+const isEnumAllowed = obj => obj.type === "string" || obj.type === "number";
+const isExistenceCondition = obj => isEnumAllowed(obj) && !obj.enum;
 
 const groupByOptions = (opts, objChildren, state, convert) => {
   const _objChildren = deepcopy(objChildren);
   return opts.reduce((accumulator, opt) => {
     return opt.options.reduce((store, option) => {
       const maybeConvertedOption = getStoredKeyFromOption(option, _objChildren, state, convert);
-      const reference = option.ref;
-      const referenceContainer = store[reference] || {
-        reference: retrieveReferenceByName(reference, _objChildren, state, convert),
+
+      const referenceContainer = store[option.ref] || {
+        reference: retrieveReferenceByName(option.ref, _objChildren, state, convert),
         alternatives: {}
       };
 
+      let alterantiveCase = {};
+
       if (isExistenceCondition(maybeConvertedOption.is)) {
-        return {
-          ...store,
-          [reference]: {
-            ...referenceContainer,
-            allCases: {
-              is: maybeConvertedOption.is,
-              options: joinOption({}, maybeConvertedOption, opt.key)
-            }
+        alterantiveCase = {
+          allCases: {
+            is: maybeConvertedOption.is,
+            options: joinOption({}, maybeConvertedOption, opt.key)
+          }
+        };
+      } else {
+        const storeKey = maybeConvertedOption.is.enum.join(".");
+        const enumContainer = referenceContainer.alternatives[storeKey] || {
+          is: option.is,
+          options: {}
+        };
+        alterantiveCase = {
+          [storeKey]: {
+            ...enumContainer,
+            options: joinOption(enumContainer.options, option, opt.key)
           }
         };
       }
-
-      const storeKey = maybeConvertedOption.is.enum.join(".");
-      const enumContainer = referenceContainer.alternatives[storeKey] || {
-        is: option.is,
-        options: {}
-      };
-
       return {
         ...store,
-        [reference]: {
+        [option.ref]: {
           ...referenceContainer,
           alternatives: {
             ...referenceContainer.referenceContainer,
-            [storeKey]: {
-              ...enumContainer,
-              options: joinOption(enumContainer.options, option, opt.key)
-            }
+            ...alterantiveCase
           }
         }
       };

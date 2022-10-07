@@ -1,10 +1,10 @@
+/* eslint-disable no-unused-vars */
 const chai = require("chai");
 
 const { expect } = chai;
 
 const chaiAsPromised = require("chai-as-promised");
 const sinonChai = require("sinon-chai");
-const { convert } = require("../index");
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -16,8 +16,8 @@ const Joi = require("joi")
     messages: {
       "reference.use": "{{#q}}"
     },
-    coerce() { },
-    validate() { },
+    coerce() {},
+    validate() {},
     rules: {
       use: {
         multi: true,
@@ -25,7 +25,7 @@ const Joi = require("joi")
           return this.$_addRule({ name: "use" }).$_setFlag("_ref", ref);
         },
         args: [],
-        validate(value, helpers, args, options) { }
+        validate(value, helpers, args, options) {}
       }
     }
   }))
@@ -36,8 +36,8 @@ const Joi = require("joi")
       "route.components": "{{#q}}",
       "route.paths": "{{#q}}"
     },
-    coerce() { },
-    validate() { },
+    coerce() {},
+    validate() {},
     rules: {
       components: {
         convert: true,
@@ -47,7 +47,7 @@ const Joi = require("joi")
           }).$_setFlag("components", { ...components });
         },
         args: [],
-        validate() { }
+        validate() {}
       },
       paths: {
         convert: true,
@@ -57,17 +57,21 @@ const Joi = require("joi")
           });
         },
         args: [],
-        validate() { }
+        validate() {}
       }
     }
   }));
 
+const { convert } = require("../index");
+
 describe("Joi Route to OpenAPI", () => {
-  beforeEach(() => { });
+  beforeEach(() => {});
 
   describe("When route extension is used", () => {
     let routing;
     let expectedObj;
+    let schema;
+    let buildPath;
 
     beforeEach(() => {
       schema = joi => ({

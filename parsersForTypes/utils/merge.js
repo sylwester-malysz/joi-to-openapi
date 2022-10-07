@@ -1,7 +1,7 @@
 /* eslint-disable no-use-before-define */
 const deepcopy = require("deepcopy");
 const _ = require("lodash");
-const { retrievePrintedReference } = require("./reference");
+const { retrieveReferenceFollow } = require("./reference");
 
 const mergeProperties = (property1, property2, state, convert) => {
   const _property1 = deepcopy(property1);
@@ -130,10 +130,10 @@ const merge = (obj1, obj2, state, convert = a => a) => {
     object2 = wrapAlternative(object2, "all");
   }
   if (object1.$ref) {
-    object1 = convert(retrievePrintedReference(object1, state.components), state);
+    object1 = convert(retrieveReferenceFollow(object1, state, convert), state);
   }
   if (object2.$ref) {
-    object2 = convert(retrievePrintedReference(object2, state.components), state);
+    object2 = convert(retrieveReferenceFollow(object2, state, convert), state);
   }
 
   if (object1.type !== object2.type)

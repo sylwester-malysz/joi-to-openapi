@@ -1,7 +1,26 @@
 const chai = require("chai");
 
 const { expect } = chai;
-const Joi = require("joi");
+const Joi = require("joi").extend(joi => ({
+  base: joi.any(),
+  type: "reference",
+  messages: {
+    "reference.use": "{{#q}}"
+  },
+  coerce() {},
+  validate() {},
+  rules: {
+    use: {
+      multi: true,
+      method(ref) {
+        return this.$_addRule({ name: "use" }).$_setFlag("_ref", ref);
+      },
+      args: [],
+      // eslint-disable-next-line no-unused-vars
+      validate(value, helpers, args, options) {}
+    }
+  }
+}));
 const chaiAsPromised = require("chai-as-promised");
 const sinonChai = require("sinon-chai");
 const { convert } = require("../index");
@@ -1585,6 +1604,88 @@ describe("Joi Object to OpenAPI", () => {
 
     it("should convert the object in the proper open-api", () =>
       expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When object has a reference which use a reference in the condition", () => {
+    let obj;
+    let expectedObj;
+    let state;
+
+    beforeEach(() => {
+      obj = Joi.object({
+        from: Joi.string().allow("").required(),
+        identifier: Joi.when(Joi.ref("body.status"), {
+          is: Joi.exist(),
+          then: Joi.reference().use("schemas:1").allow("").optional(),
+          otherwise: Joi.reference().use("schemas:1").allow("").required()
+        }),
+        body: Joi.object()
+          .keys({
+            status: Joi.reference().use("schemas:1").optional()
+          })
+          .required()
+      });
+
+      state = {
+        components: {
+          schemas: {
+            1: Joi.reference().use("schemas:2"),
+            2: Joi.string()
+          }
+        }
+      };
+
+      expectedObj = {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              from: {
+                type: "string"
+              },
+              body: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  status: {
+                    type: "string"
+                  }
+                },
+                required: ["status"]
+              },
+              identifier: {
+                $ref: "#/components/schemas/1"
+              }
+            },
+            required: ["from", "body"]
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              from: {
+                type: "string"
+              },
+              body: {
+                type: "object",
+                additionalProperties: false,
+                properties: {}
+              },
+              identifier: {
+                $ref: "#/components/schemas/1"
+              }
+            },
+            required: ["from", "body", "identifier"]
+          }
+        ]
+      };
+    });
+
+    it("should convert the object in the proper open-api", () => {
+      const converted = convert(obj, state);
+      return expect(converted).deep.equal(expectedObj);
+    });
   });
 
   describe("When .when is applied to an object which has a reference in an upper scope", () => {
