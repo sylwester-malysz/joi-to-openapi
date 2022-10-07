@@ -47,6 +47,23 @@ describe("Joi Object to OpenAPI", () => {
       expect(convert(obj)).deep.equal(expectedObj));
   });
 
+  describe("When object with empty set of keys", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.object().keys({});
+      expectedObj = {
+        type: "object",
+        properties: {},
+        additionalProperties: false
+      };
+    });
+
+    it("should convert the object in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
   describe("When pattern is applied to the object", () => {
     let obj;
     let expectedObj;
