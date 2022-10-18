@@ -50,16 +50,18 @@ const convertIs = (joiObj, valids, state, convert) => {
   return undefined;
 };
 
-const values = (joiSchema, object_type) => {
+const values = joiSchema => {
   if (joiSchema._valids && joiSchema._valids._values.size) {
     const validValues = Array.from(joiSchema._valids._values);
-    return _.partition(
-      validValues,
-      // eslint-disable-next-line valid-typeof
-      value => value !== null && joiSchema._flags.only && object_type === typeof value
-    );
+    return validValues.reduce((acc, value) => {
+      if (value !== null) {
+        const type = typeof value;
+        return { ...acc, [type]: [...(acc[type] ?? []), value] };
+      }
+      return acc;
+    }, {});
   }
-  return [[], []];
+  return {};
 };
 
 const mapSupportedType = joiSchema => {
@@ -111,37 +113,32 @@ const addAllows = (joiSchema, openApiObj) => {
   if (joiSchema._valids) {
     joiSchema._valids._values.delete(null);
 
-    const [sameTypeValues, noSameTypeValues] = values(joiSchema, mapSupportedType(joiSchema));
-    if (sameTypeValues.length) _openApiObj.enum = sameTypeValues;
+    const supportedType = mapSupportedType(joiSchema);
+    const vals = values(joiSchema);
+    return Object.entries(vals).reduce((acc, [itemType, item]) => {
+      let _obj = acc;
 
-    const [alternativesValues, empty] = filterEmpyValue(noSameTypeValues);
-    const _openApiObjWithEmpty = mergeEmptyValue(_openApiObj, empty);
-
-    if (alternativesValues.length > 0) {
-      const anyOf = [];
-      alternativesValues.forEach(item => {
-        const itemType = typeof item;
+      if (itemType === supportedType) {
+        const [alternativesValues, empty] = filterEmpyValue(vals[supportedType]);
+        if (alternativesValues.length > 0) _obj.enum = alternativesValues;
+        _obj = mergeEmptyValue(_obj, empty);
+      } else {
         switch (itemType) {
           case "string":
-            anyOf.push({ type: "string", enum: [item] });
+            merge(_obj, { anyOf: [{ type: "string", enum: [item] }] });
             break;
           case "boolean":
-            anyOf.push({ type: "boolean", enum: [item] });
+            merge(_obj, { anyOf: [{ type: "boolean", enum: [item] }] });
             break;
           case "number":
-            anyOf.push({ type: "number", enum: [item] });
+            merge(_obj, { anyOf: [{ type: "number", enum: [item] }] });
             break;
           default:
             break;
         }
-      });
-
-      if (anyOf.length === 0) {
-        return _openApiObjWithEmpty;
       }
-      return merge({ anyOf }, _openApiObjWithEmpty);
-    }
-    return _openApiObjWithEmpty;
+      return _obj;
+    }, _openApiObj);
   }
   return _openApiObj;
 };
