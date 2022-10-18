@@ -1,6 +1,6 @@
 const { options } = require("./utils");
 
-const convertIfPresent = (cond, values, convert, state) => {
+const convertIfPresent = (cond, schema, convert, state) => {
   let c;
   if (cond) {
     if (cond._flags.presence === "forbidden") return undefined;

@@ -12,7 +12,7 @@ const refParser = require("./parsersForTypes/reference");
 const extensionParser = require("./parsersForTypes/extension");
 const optionsParser = require("./parsersForTypes/opt");
 const anyParser = require("./parsersForTypes/any");
-const { values, isJoi } = require("./parsersForTypes/utils");
+const { isJoi, addAllows } = require("./parsersForTypes/utils");
 
 const universalDecorator = joiSchema => {
   const universalParams = {};
@@ -21,11 +21,6 @@ const universalDecorator = joiSchema => {
 
   if (joiSchema._valids && joiSchema._valids.has(null)) {
     universalParams.nullable = true;
-  }
-
-  const notEmptyValues = values(joiSchema);
-  if (notEmptyValues.length) {
-    universalParams.enum = notEmptyValues;
   }
 
   if (joiSchema._flags.description) {
@@ -115,7 +110,7 @@ const convertAux = (joiSchema, state) => {
       swaggerSchema = extensionParser(joiSchema, newState, convertAux);
   }
 
-  return swaggerSchema ? Object.assign(swaggerSchema, decorator) : undefined;
+  return swaggerSchema ? addAllows(joiSchema, Object.assign(swaggerSchema, decorator)) : undefined;
 };
 
 const convert = (joiSchema, state = {}) => convertAux(joiSchema, state);

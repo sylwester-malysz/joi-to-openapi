@@ -1,3 +1,4 @@
+const _ = require("lodash");
 const {
   makeOptions,
   makeAlternativesFromOptions,
@@ -40,7 +41,6 @@ const convertIs = (joiObj, valids, state, convert) => {
         const values = Array.from(validValues);
         if (typeof values[0] === "string") converted = { type: "string", enum: values };
       }
-      // converted.isRequired = joiObj._flags.presence === "required";
       return converted;
     }
 
@@ -50,17 +50,103 @@ const convertIs = (joiObj, valids, state, convert) => {
   return undefined;
 };
 
-const values = joiSchema => {
+const values = (joiSchema, object_type) => {
   if (joiSchema._valids && joiSchema._valids._values.size) {
     const validValues = Array.from(joiSchema._valids._values);
-    const notEmptyValues = validValues.filter(value => value !== null && value !== "");
-    return notEmptyValues;
+    return _.partition(
+      validValues,
+      // eslint-disable-next-line valid-typeof
+      value => value !== null && joiSchema._flags.only && object_type === typeof value
+    );
   }
-  return [];
+  return [[], []];
+};
+
+const mapSupportedType = joiSchema => {
+  const { type } = joiSchema;
+
+  switch (type) {
+    case "number":
+    case "string":
+    case "boolean":
+      return type;
+    default:
+      return "not_supported";
+  }
+};
+
+const filterEmpyValue = vals => _.partition(vals, v => v !== "");
+
+const mergeEmptyValue = (openApiObj, empty) => {
+  const [emptyValue] = empty;
+  const _openApiObj = openApiObj;
+  if (typeof emptyValue === "undefined") return _openApiObj;
+
+  switch (_openApiObj.type) {
+    case "string": {
+      const isEnum = (_openApiObj.enum ?? []).length > 0;
+      if (_openApiObj.format) {
+        return { anyOf: [_openApiObj, { type: "string", enum: [emptyValue] }] };
+      }
+      if (isEnum && typeof _openApiObj.minLength === "undefined") {
+        const newEnum = _openApiObj.enum.filter(val => val === emptyValue);
+        _openApiObj.enum = [...newEnum, emptyValue];
+        return _openApiObj;
+      }
+      const minLength = _openApiObj.minLength ?? 0;
+      if (minLength <= 1 && !isEnum) {
+        delete _openApiObj.minLength;
+        return _openApiObj;
+      }
+      return { anyOf: [_openApiObj, { type: "string", enum: [emptyValue] }] };
+    }
+    default:
+      return _openApiObj;
+  }
+};
+
+const addAllows = (joiSchema, openApiObj) => {
+  const _openApiObj = openApiObj;
+
+  if (joiSchema._valids) {
+    joiSchema._valids._values.delete(null);
+
+    const [sameTypeValues, noSameTypeValues] = values(joiSchema, mapSupportedType(joiSchema));
+    if (sameTypeValues.length) _openApiObj.enum = sameTypeValues;
+
+    const [alternativesValues, empty] = filterEmpyValue(noSameTypeValues);
+    const _openApiObjWithEmpty = mergeEmptyValue(_openApiObj, empty);
+
+    if (alternativesValues.length > 0) {
+      const anyOf = [];
+      alternativesValues.forEach(item => {
+        const itemType = typeof item;
+        switch (itemType) {
+          case "string":
+            anyOf.push({ type: "string", enum: [item] });
+            break;
+          case "boolean":
+            anyOf.push({ type: "boolean", enum: [item] });
+            break;
+          case "number":
+            anyOf.push({ type: "number", enum: [item] });
+            break;
+          default:
+            break;
+        }
+      });
+
+      if (anyOf.length === 0) {
+        return _openApiObjWithEmpty;
+      }
+      return merge({ anyOf }, _openApiObjWithEmpty);
+    }
+    return _openApiObjWithEmpty;
+  }
+  return _openApiObj;
 };
 
 const options = (schema, state, convert, fn) => {
-  const vals = values(schema);
   const _schema = {
     optOf: [
       ...schema.$_terms.whens.map(s => {
@@ -68,8 +154,8 @@ const options = (schema, state, convert, fn) => {
         const ref = s.ref ? s.ref.key : undefined;
         return {
           is,
-          otherwise: fn(s.otherwise, vals, convert, state),
-          then: fn(s.then, vals, convert, state),
+          otherwise: fn(s.otherwise, schema, convert, state),
+          then: fn(s.then, schema, convert, state),
           ref
         };
       })
@@ -98,5 +184,6 @@ module.exports = {
   isFieldPresent,
   removeSubsets,
   buildNandAlternatives,
-  buildXorAlternatives
+  buildXorAlternatives,
+  addAllows
 };

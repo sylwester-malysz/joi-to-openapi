@@ -1,5 +1,5 @@
 const find = require("lodash.find");
-const { options } = require("./utils");
+const { options, addAllows } = require("./utils");
 
 /* eslint-disable no-underscore-dangle */
 
@@ -38,17 +38,15 @@ const getPattern = tests => {
   return p ? { pattern: p.args.regex.source } : null;
 };
 
-const mkString = (cond, values) => {
+const mkString = (cond, schema) => {
   let c;
   if (cond) {
     if (cond.type !== "any" && cond.type !== "string")
       throw Error("cannot build alternative different of string or any");
     if (cond._flags.presence === "forbidden") return undefined;
     c = { type: "string" };
-    if (values.length > 0) {
-      c.enum = values;
-    }
     if (c) c.isRequired = cond._flags.presence === "required";
+    c = addAllows(schema, c);
   }
   return c;
 };
@@ -63,6 +61,7 @@ const parser = (joiSchema, state, convert) => {
   const minLength = getMinLength(rules);
   const len = getLength(rules);
   const pattern = getPattern(rules);
+
   return {
     type: "string",
     ...format,

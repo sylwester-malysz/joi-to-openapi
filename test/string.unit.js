@@ -4,12 +4,12 @@ const { expect } = chai;
 
 const chaiAsPromised = require("chai-as-promised");
 const sinonChai = require("sinon-chai");
+const Joi = require("joi");
+
 const { convert } = require("../index");
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
-
-const Joi = require("joi");
 
 describe("Joi String to OpenAPI", () => {
   beforeEach(() => {});
@@ -21,7 +21,7 @@ describe("Joi String to OpenAPI", () => {
     beforeEach(() => {
       obj = Joi.string();
       expectedObj = {
-        type: "string",
+        type: "string"
       };
     });
 
@@ -34,10 +34,26 @@ describe("Joi String to OpenAPI", () => {
     let expectedObj;
 
     beforeEach(() => {
+      obj = Joi.string().valid("500", "300", "200").allow("test", "mano");
+      expectedObj = {
+        type: "string",
+        enum: ["500", "300", "200", "test", "mano"]
+      };
+    });
+
+    it("should be converted in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When a strings is given with only valid values", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
       obj = Joi.string().valid("500", "300", "200");
       expectedObj = {
         type: "string",
-        enum: ["500", "300", "200"],
+        enum: ["500", "300", "200"]
       };
     });
 
@@ -45,81 +61,15 @@ describe("Joi String to OpenAPI", () => {
       expect(convert(obj)).deep.equal(expectedObj));
   });
 
-  describe("When a strings is given with examples", () => {
+  describe("When a strings allow empty string and null", () => {
     let obj;
     let expectedObj;
 
     beforeEach(() => {
-      obj = Joi.string().example("This is a test");
+      obj = Joi.string().allow("").allow(null);
       expectedObj = {
         type: "string",
-        example: "This is a test",
-      };
-    });
-
-    it("should be converted in the proper open-api", () =>
-      expect(convert(obj)).deep.equal(expectedObj));
-  });
-
-  describe("When a string is given with multiple examples", () => {
-    let obj;
-    let expectedObj;
-
-    beforeEach(() => {
-      obj = Joi.string()
-        .example("This is a test")
-        .example("Happy Joi");
-      expectedObj = {
-        type: "string",
-        examples: ["This is a test", "Happy Joi"],
-      };
-    });
-
-    it("should be converted in the proper open-api", () =>
-      expect(convert(obj)).deep.equal(expectedObj));
-  });
-
-  describe("When a string is given with description", () => {
-    let obj;
-    let expectedObj;
-
-    beforeEach(() => {
-      obj = Joi.string().description("This is a test");
-      expectedObj = {
-        type: "string",
-        description: "This is a test",
-      };
-    });
-
-    it("should be converted in the proper open-api", () =>
-      expect(convert(obj)).deep.equal(expectedObj));
-  });
-
-  describe("When a string is given with label", () => {
-    let obj;
-    let expectedObj;
-
-    beforeEach(() => {
-      obj = Joi.string().label("This is a test");
-      expectedObj = {
-        type: "string",
-        title: "This is a test",
-      };
-    });
-
-    it("should be converted in the proper open-api", () =>
-      expect(convert(obj)).deep.equal(expectedObj));
-  });
-
-  describe("When a string is given with default", () => {
-    let obj;
-    let expectedObj;
-
-    beforeEach(() => {
-      obj = Joi.string().default("This is a test");
-      expectedObj = {
-        type: "string",
-        default: "This is a test",
+        nullable: true
       };
     });
 
@@ -135,7 +85,87 @@ describe("Joi String to OpenAPI", () => {
       obj = Joi.string().allow(null);
       expectedObj = {
         type: "string",
-        nullable: true,
+        nullable: true
+      };
+    });
+
+    it("should be converted in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When a strings is given with examples", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.string().example("This is a test");
+      expectedObj = {
+        type: "string",
+        example: "This is a test"
+      };
+    });
+
+    it("should be converted in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When a string is given with multiple examples", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.string().example("This is a test").example("Happy Joi");
+      expectedObj = {
+        type: "string",
+        examples: ["This is a test", "Happy Joi"]
+      };
+    });
+
+    it("should be converted in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When a string is given with description", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.string().description("This is a test");
+      expectedObj = {
+        type: "string",
+        description: "This is a test"
+      };
+    });
+
+    it("should be converted in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When a string is given with label", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.string().label("This is a test");
+      expectedObj = {
+        type: "string",
+        title: "This is a test"
+      };
+    });
+
+    it("should be converted in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When a string is given with default", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.string().default("This is a test");
+      expectedObj = {
+        type: "string",
+        default: "This is a test"
       };
     });
 
@@ -151,7 +181,7 @@ describe("Joi String to OpenAPI", () => {
       obj = Joi.string().guid();
       expectedObj = {
         type: "string",
-        format: "uuid",
+        format: "uuid"
       };
     });
 
@@ -167,7 +197,7 @@ describe("Joi String to OpenAPI", () => {
       obj = Joi.string().email();
       expectedObj = {
         type: "string",
-        format: "email",
+        format: "email"
       };
     });
 
@@ -183,7 +213,48 @@ describe("Joi String to OpenAPI", () => {
       obj = Joi.string().uri();
       expectedObj = {
         type: "string",
+        format: "uri"
+      };
+    });
+
+    it("should be converted in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When a string with uri with allow", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.string().uri().allow("");
+      expectedObj = {
+        anyOf: [
+          {
+            type: "string",
+            format: "uri"
+          },
+          {
+            type: "string",
+            enum: [""]
+          }
+        ]
+      };
+    });
+
+    it("should be converted in the proper open-api", () =>
+      expect(convert(obj)).deep.equal(expectedObj));
+  });
+
+  describe("When a string with uri with allow null", () => {
+    let obj;
+    let expectedObj;
+
+    beforeEach(() => {
+      obj = Joi.string().uri().allow(null);
+      expectedObj = {
+        type: "string",
         format: "uri",
+        nullable: true
       };
     });
 
@@ -199,7 +270,7 @@ describe("Joi String to OpenAPI", () => {
       obj = Joi.string().isoDate();
       expectedObj = {
         type: "string",
-        format: "date-time",
+        format: "date-time"
       };
     });
 
@@ -215,7 +286,7 @@ describe("Joi String to OpenAPI", () => {
       obj = Joi.string().min(10);
       expectedObj = {
         type: "string",
-        minLength: 10,
+        minLength: 10
       };
     });
 
@@ -231,7 +302,7 @@ describe("Joi String to OpenAPI", () => {
       obj = Joi.string().max(10);
       expectedObj = {
         type: "string",
-        maxLength: 10,
+        maxLength: 10
       };
     });
 
@@ -247,7 +318,7 @@ describe("Joi String to OpenAPI", () => {
       obj = Joi.string().length(10);
       expectedObj = {
         type: "string",
-        length: 10,
+        length: 10
       };
     });
 
@@ -263,7 +334,7 @@ describe("Joi String to OpenAPI", () => {
       obj = Joi.string().pattern(/^[abc]+$/);
       expectedObj = {
         type: "string",
-        pattern: "^[abc]+$",
+        pattern: "^[abc]+$"
       };
     });
 
